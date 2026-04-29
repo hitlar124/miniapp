@@ -140,6 +140,10 @@
         </div>
         <button onclick="handleLogin()" class="w-full btn-primary py-3 rounded-xl mt-5 text-[15px]">Login</button>
         <p id="login-err" class="text-red-400 text-sm mt-3 hidden">Wrong username or password.</p>
+        <div class="mt-6 pt-5 border-t border-white/5">
+            <p class="text-gray-500 text-xs mb-2">পাসওয়ার্ড ভুলে গেছেন?</p>
+            <button onclick="doReset()" class="text-orange-400 text-sm hover:text-orange-300 underline underline-offset-2 transition">Setup আবার করুন (Reset)</button>
+        </div>
     </div>
 </div>
 
@@ -416,7 +420,7 @@
         if (p.length < 6) return showAlert('Password must be at least 6 characters.');
         const cfg = getConfig() || {};
         cfg.panelUsername = u;
-        cfg.panelPassword = btoa(p);
+        try { cfg.panelPassword = btoa(unescape(encodeURIComponent(p))); } catch(e) { cfg.panelPassword = btoa(p); }
         saveConfig(cfg);
         showSetupStep(2);
     };
@@ -456,14 +460,34 @@
         const cfg = getConfig();
         if (!cfg) return;
         const errEl = document.getElementById('login-err');
-        if (u === cfg.panelUsername && btoa(p) === cfg.panelPassword) {
+
+        // Support both btoa-encoded and plain text passwords (for migration)
+        let passwordMatch = false;
+        try {
+            passwordMatch = (btoa(unescape(encodeURIComponent(p))) === cfg.panelPassword)
+                || (btoa(p) === cfg.panelPassword)
+                || (p === cfg.panelPassword);
+        } catch(e) {
+            passwordMatch = (p === cfg.panelPassword);
+        }
+
+        if (u === cfg.panelUsername && passwordMatch) {
             errEl.classList.add('hidden');
             sessionStorage.setItem('rncch_logged_in', '1');
-            if (!tryInitFirebase()) return showAlert('Firebase not initialized. Check Settings.');
+            if (!tryInitFirebase()) return showAlert('Firebase not initialized. Check Settings → Firebase Config.');
             showSection('dashboard-section');
             loadDashboard();
         } else {
             errEl.classList.remove('hidden');
+        }
+    };
+
+    window.doReset = function() {
+        if (confirm('Setup সম্পূর্ণ রিসেট হবে — username, password, Firebase config সব মুছে যাবে। নিশ্চিত?')) {
+            localStorage.removeItem(LS_KEY);
+            sessionStorage.removeItem('rncch_logged_in');
+            showSection('setup-section');
+            showSetupStep(1);
         }
     };
 
@@ -698,7 +722,7 @@
         if (p && p.length < 6) return showAlert('Password must be at least 6 characters.');
         const cfg = getConfig() || {};
         cfg.panelUsername = u;
-        if (p) cfg.panelPassword = btoa(p);
+        if (p) { try { cfg.panelPassword = btoa(unescape(encodeURIComponent(p))); } catch(e) { cfg.panelPassword = btoa(p); } }
         saveConfig(cfg);
         showAlert('Login credentials updated!');
     };
