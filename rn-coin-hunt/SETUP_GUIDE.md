@@ -1,47 +1,48 @@
-# 🪙 RN Coin Hunt — সম্পূর্ণ সেটআপ গাইড (বিগিনারদের জন্য)
+# 🪙 RN Coin Hunt — সম্পূর্ণ সেটআপ গাইড
 
-> ✅ কোনো কোড এডিট করতে হবে না — সব কিছু Admin Panel বা Render থেকে করা যাবে।
-
----
-
-## প্রথমে বুঝুন — কোথায় কী করতে হবে
-
-| কাজ | কোথায় |
-|-----|--------|
-| Firebase তৈরি | firebase.google.com |
-| GitHub-এ কোড আপলোড | github.com |
-| ওয়েবসাইট হোস্টিং (Main App + Bot) | render.com |
-| Firebase config, Admin UID যুক্ত করা | **Admin Panel → Settings** |
-| Bot Token, Firebase keys (server/bot) | **Render → Environment Variables** |
-| Telegram Bot তৈরি | Telegram-এ @BotFather |
+> কোনো কোড এডিট করতে হবে না। শুধু নিচের ধাপগুলো একে একে করুন।
 
 ---
 
-## ধাপ ১ — Firebase প্রজেক্ট তৈরি করুন
+# ধাপ ১ — Firebase প্রজেক্ট তৈরি করুন
 
-### ১.১ — নতুন প্রজেক্ট
-1. **https://console.firebase.google.com** — এই লিঙ্কে যান
+## ১.১ — নতুন প্রজেক্ট খুলুন
+
+1. ব্রাউজারে যান → **https://console.firebase.google.com**
 2. Google account দিয়ে লগিন করুন
-3. **"Add project"** বাটনে ক্লিক করুন
-4. নাম দিন: `rn-coin-hunt`
-5. Google Analytics: **Disable** করুন
+3. **"Create a project"** বাটনে ক্লিক করুন
+4. Project name: **rn-coin-hunt** লিখুন → **Continue**
+5. Google Analytics: **Enable this project for Google Analytics** — বন্ধ করুন (toggle off)
 6. **"Create project"** চাপুন
+7. কিছুক্ষণ অপেক্ষা করুন → **"Continue"** চাপুন
 
-### ১.২ — Authentication চালু করুন
-1. বামে মেনু থেকে **"Build"** → **"Authentication"** ক্লিক করুন
+---
+
+## ১.২ — Authentication চালু করুন
+
+1. বামে মেনুতে **"Build"** → **"Authentication"** ক্লিক করুন
 2. **"Get started"** বাটন চাপুন
-3. **"Email/Password"** তে ক্লিক করুন
-4. **Enable** করুন → **Save**
+3. **"Email/Password"** এ ক্লিক করুন
+4. প্রথম toggle **"Enable"** করুন (নীল হবে)
+5. **"Save"** চাপুন
 
-### ১.৩ — Firestore Database তৈরি করুন
+---
+
+## ১.৩ — Firestore Database তৈরি করুন
+
 1. বামে মেনু → **"Build"** → **"Firestore Database"**
-2. **"Create database"** চাপুন
-3. **"Start in production mode"** সিলেক্ট করুন → **Next**
-4. Location: **asia-south1** (বা আপনার কাছের যেকোনো) → **Enable**
+2. **"Create database"** বাটন চাপুন
+3. **"Start in production mode"** সিলেক্ট করুন → **"Next"**
+4. Location dropdown থেকে **"asia-south1 (Mumbai)"** সিলেক্ট করুন
+5. **"Enable"** চাপুন — কিছুক্ষণ লোড হবে
 
-### ১.৪ — Firestore Rules সেট করুন
-1. Firestore Database-এ গিয়ে **"Rules"** ট্যাবে ক্লিক করুন
-2. সব কিছু মুছে নিচের কোড পেস্ট করুন:
+---
+
+## ১.৪ — Firestore Rules সেট করুন
+
+1. Firestore Database পেজে উপরে **"Rules"** ট্যাবে ক্লিক করুন
+2. বক্সের সব লেখা মুছে দিন
+3. নিচের পুরো কোড কপি করে পেস্ট করুন:
 
 ```
 rules_version = '2';
@@ -67,237 +68,310 @@ service cloud.firestore {
 }
 ```
 
-3. **"Publish"** চাপুন
-
-### ১.৫ — Firebase Web Config সংগ্রহ করুন
-1. Firebase Console-এ উপরে **Project Overview** পাতা → ⚙️ (Settings icon) → **"Project settings"**
-2. নিচে স্ক্রল করুন — **"Your apps"** সেকশন দেখবেন
-3. যদি কোনো App না থাকে → **`</>`** (Web) আইকনে ক্লিক করুন
-4. App nickname দিন: `rn-coin-hunt-web` → **Register app**
-5. নিচে এইরকম একটা কোড দেখবেন:
-```javascript
-const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "rn-coin-hunt.firebaseapp.com",
-  projectId: "rn-coin-hunt",
-  storageBucket: "rn-coin-hunt.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abc123"
-};
-```
-6. **এই ৬টি মান কোথাও সেভ করুন** (নোটপ্যাডে) — পরে Admin Panel-এ লাগবে
-
-### ১.৬ — Firebase Admin SDK Key নামান
-1. **Project Settings** → **"Service accounts"** ট্যাব
-2. **"Generate new private key"** বাটন চাপুন
-3. একটা `.json` ফাইল নামবে — এটা সেভ করুন
-4. এই ফাইলটা **Bot-এর জন্য লাগবে** (Render-এ পেস্ট করতে হবে)
+4. **"Publish"** বাটন চাপুন
 
 ---
 
-## ধাপ ২ — GitHub-এ কোড আপলোড করুন
+## ১.৫ — Firebase Web Config সংগ্রহ করুন
 
-> আপনার কম্পিউটারে এই প্রজেক্টের `rn-coin-hunt/` ফোল্ডার আছে।
+> এই মানগুলো পরে Render-এ এবং Admin Panel-এ লাগবে।
 
-### ২.১ — GitHub Account
+1. উপরে বাম কোণে **Project Overview** এর পাশে ⚙️ আইকন → **"Project settings"** ক্লিক করুন
+2. পেজটা নিচে স্ক্রল করুন — **"Your apps"** সেকশন দেখবেন
+3. যদি কোনো app না থাকে → **`</>`** (Web app) আইকনে ক্লিক করুন
+4. App nickname লিখুন: **web** → **"Register app"** চাপুন
+5. নিচে এইরকম কোড দেখাবে:
+
+```
+apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXX"
+authDomain: "rn-coin-hunt.firebaseapp.com"
+projectId: "rn-coin-hunt"
+storageBucket: "rn-coin-hunt.appspot.com"
+messagingSenderId: "123456789012"
+appId: "1:123456789012:web:abcdef123456"
+```
+
+6. এই ৬টা মান **নোটপ্যাড** বা কোনো জায়গায় কপি করে রাখুন
+
+---
+
+## ১.৬ — Firebase Admin SDK Key নামান (Bot-এর জন্য)
+
+1. **Project settings** পেজে উপরে **"Service accounts"** ট্যাবে ক্লিক করুন
+2. **"Generate new private key"** বাটন চাপুন
+3. আবার **"Generate key"** চাপুন → একটা `.json` ফাইল নামবে
+4. এই ফাইলটা কম্পিউটারে সেভ করুন — পরে লাগবে
+
+---
+
+# ধাপ ২ — GitHub-এ কোড আপলোড করুন
+
+## ২.১ — GitHub Account ও Repository তৈরি
+
 1. **https://github.com** — লগিন করুন (না থাকলে তৈরি করুন)
-2. উপরে **"+"** → **"New repository"**
-3. Repository name: `rn-coin-hunt`
-4. **Private** রাখুন
+2. উপরে ডানে **"+"** আইকন → **"New repository"**
+3. Repository name: **rn-coin-hunt**
+4. **"Private"** সিলেক্ট করুন
 5. **"Create repository"** চাপুন
 
-### ২.২ — Shell থেকে কোড Push করুন
+## ২.২ — কোড Push করুন
 
-আপনার কম্পিউটারে Terminal/Command Prompt খুলুন এবং এই কমান্ডগুলো একে একে চালান:
+আপনার কম্পিউটারে **Terminal** (Mac/Linux) বা **Command Prompt** (Windows) খুলুন।
+
+নিচের কমান্ডগুলো একে একে চালান:
 
 ```bash
 cd rn-coin-hunt
+```
+```bash
 git init
+```
+```bash
 git add .
-git commit -m "Initial commit"
+```
+```bash
+git commit -m "first commit"
+```
+```bash
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/rn-coin-hunt.git
+```
+```bash
+git remote add origin https://github.com/YOUR_GITHUB_USERNAME/rn-coin-hunt.git
+```
+```bash
 git push -u origin main
 ```
 
-> ⚠️ `YOUR_USERNAME` জায়গায় আপনার GitHub username বসান
+> ⚠️ **YOUR_GITHUB_USERNAME** জায়গায় আপনার আসল GitHub username বসান
 
 ---
 
-## ধাপ ৩ — Render-এ Main Server Deploy করুন
+# ধাপ ৩ — Render-এ Main Server Deploy করুন
 
-> Main Server = User App + Admin Panel একসাথে চলবে
+> এই সার্ভিসে User App + Admin Panel দুটোই চলবে।
 
-### ৩.১ — Render Account
-1. **https://render.com** — Google বা GitHub দিয়ে Sign Up করুন
+## ৩.১ — Render Account
 
-### ৩.২ — New Web Service তৈরি
-1. Dashboard-এ **"New +"** → **"Web Service"**
-2. **"Connect a repository"** → GitHub সংযুক্ত করুন
-3. আপনার `rn-coin-hunt` repository সিলেক্ট করুন → **Connect**
+1. **https://render.com** → **"Get Started"** → GitHub দিয়ে Sign Up করুন
+
+## ৩.২ — New Web Service তৈরি
+
+1. Render Dashboard → **"New +"** → **"Web Service"**
+2. **"Build and deploy from a Git repository"** → **"Next"**
+3. GitHub connect করুন → **rn-coin-hunt** repository খুঁজে **"Connect"** চাপুন
 4. নিচের মতো সেটিং করুন:
 
-| Field | Value |
-|-------|-------|
+| Field | যা লিখবেন |
+|-------|-----------|
 | Name | `rn-coin-hunt` |
-| Root Directory | (খালি রাখুন) |
+| Region | Singapore (বা কাছের যেকোনো) |
+| Root Directory | *(খালি রাখুন)* |
 | Environment | `Node` |
 | Build Command | `npm install` |
 | Start Command | `node server.js` |
+| Instance Type | Free |
 
-### ৩.৩ — Environment Variables যুক্ত করুন
-**"Environment"** সেকশনে গিয়ে **"Add Environment Variable"** দিয়ে এই ভ্যারিয়েবলগুলো যুক্ত করুন:
+## ৩.৩ — Environment Variables যুক্ত করুন
 
-| Variable Name | Value (কোথায় পাবেন) |
-|---------------|---------------------|
-| `FIREBASE_API_KEY` | Firebase Config → apiKey |
-| `FIREBASE_AUTH_DOMAIN` | Firebase Config → authDomain |
-| `FIREBASE_PROJECT_ID` | Firebase Config → projectId |
-| `FIREBASE_STORAGE_BUCKET` | Firebase Config → storageBucket |
-| `FIREBASE_MESSAGING_SENDER_ID` | Firebase Config → messagingSenderId |
-| `FIREBASE_APP_ID` | Firebase Config → appId |
-| `BOT_USERNAME` | আপনার bot-এর username (@ ছাড়া) |
+নিচে স্ক্রল করুন → **"Environment Variables"** সেকশন।
+**"Add Environment Variable"** বাটন চেপে একে একে এগুলো যুক্ত করুন:
 
-### ৩.৪ — Deploy করুন
-1. **"Create Web Service"** চাপুন
-2. Deploy শুরু হবে — ৩-৫ মিনিট অপেক্ষা করুন
-3. উপরে একটা URL দেখবেন: `https://rn-coin-hunt.onrender.com`
-4. **এই URL সেভ করুন** — পরে লাগবে
+> ফর্ম্যাট: বাম বক্সে **Name**, ডান বক্সে **Value**
+
+| Name | Value (কোথা থেকে নেবেন) |
+|------|------------------------|
+| `FIREBASE_API_KEY` | Firebase Config → apiKey এর ভ্যালু |
+| `FIREBASE_AUTH_DOMAIN` | Firebase Config → authDomain এর ভ্যালু |
+| `FIREBASE_PROJECT_ID` | Firebase Config → projectId এর ভ্যালু |
+| `FIREBASE_STORAGE_BUCKET` | Firebase Config → storageBucket এর ভ্যালু |
+| `FIREBASE_MESSAGING_SENDER_ID` | Firebase Config → messagingSenderId এর ভ্যালু |
+| `FIREBASE_APP_ID` | Firebase Config → appId এর ভ্যালু |
+| `BOT_USERNAME` | আপনার bot-এর username (@ ছাড়া, যেমন: `RNCoinHuntBot`) |
+
+**উদাহরণ:**
+```
+Name:  FIREBASE_API_KEY
+Value: AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+## ৩.৪ — Deploy করুন
+
+1. **"Create Web Service"** বাটন চাপুন
+2. Deploy শুরু হবে — **৩-৫ মিনিট** অপেক্ষা করুন
+3. উপরে সবুজ **"Live"** লেখা দেখালে সফল হয়েছে
+4. URL দেখবেন এরকম: **`https://rn-coin-hunt.onrender.com`**
+5. এই URL কোথাও সেভ করুন — সব জায়গায় লাগবে
 
 ---
 
-## ধাপ ৪ — Render-এ Bot Deploy করুন
+# ধাপ ৪ — Render-এ Bot Deploy করুন
 
-### ৪.১ — Firebase Service Account JSON প্রস্তুত করুন
-1. ধাপ ১.৬-এ নামানো `.json` ফাইলটা খুলুন (Notepad/TextEdit দিয়ে)
-2. সব কিছু **একটা লাইনে** কপি করুন (সেটা এমনিতেই এক লাইনে থাকবে)
-3. এটা `FIREBASE_SERVICE_ACCOUNT` হিসেবে Render-এ দেবেন
+## ৪.১ — Firebase JSON ফাইল প্রস্তুত করুন
 
-### ৪.২ — Bot সার্ভিস তৈরি
-1. Render → **"New +"** → **"Web Service"** (বা Background Worker)
-2. একই `rn-coin-hunt` repository সিলেক্ট করুন
+1. ধাপ ১.৬-এ নামানো `.json` ফাইলটা **Notepad** দিয়ে খুলুন
+2. সব কিছু **Ctrl+A** দিয়ে সিলেক্ট করুন → **Ctrl+C** করে কপি করুন
+3. এটাই `FIREBASE_SERVICE_ACCOUNT` এর ভ্যালু হবে
+
+## ৪.২ — Bot Web Service তৈরি
+
+1. Render → **"New +"** → **"Web Service"**
+2. একই **rn-coin-hunt** repository → **"Connect"**
 3. সেটিং:
 
-| Field | Value |
-|-------|-------|
+| Field | যা লিখবেন |
+|-------|-----------|
 | Name | `rn-coin-hunt-bot` |
 | Root Directory | `bot` |
 | Environment | `Node` |
 | Build Command | `npm install` |
 | Start Command | `node bot.js` |
+| Instance Type | Free |
 
-### ৪.৩ — Bot Environment Variables
-| Variable Name | Value |
-|---------------|-------|
+## ৪.৩ — Bot Environment Variables
+
+| Name | Value |
+|------|-------|
 | `BOT_TOKEN` | `8718584802:AAHswaep8g16-H6q_ezOewkQzsfEdhX6xPA` |
 | `ADMIN_TELEGRAM_IDS` | `1414414216,7728185213` |
-| `MINI_APP_URL` | `https://rn-coin-hunt.onrender.com/user-app/` |
-| `SERVER_URL` | `https://rn-coin-hunt.onrender.com` |
-| `BOT_USERNAME` | আপনার bot username |
-| `FIREBASE_SERVICE_ACCOUNT` | Firebase JSON (পুরো এক লাইন) |
+| `MINI_APP_URL` | `https://rn-coin-hunt.onrender.com/user-app/` *(আপনার আসল URL দিন)* |
+| `SERVER_URL` | `https://rn-coin-hunt.onrender.com` *(আপনার আসল URL দিন)* |
+| `BOT_USERNAME` | আপনার bot username (@ ছাড়া) |
+| `FIREBASE_SERVICE_ACCOUNT` | Firebase JSON ফাইলের পুরো কন্টেন্ট |
 
-4. **"Create Web Service"** চাপুন
+4. **"Create Web Service"** চাপুন → Deploy হতে দিন
 
 ---
 
-## ধাপ ৫ — Admin Panel সেটআপ করুন
+# ধাপ ৫ — Admin Panel First Time Setup করুন
 
-### ৫.১ — Admin Panel খুলুন
-1. ব্রাউজারে যান: `https://rn-coin-hunt.onrender.com/admin-panel/`
-2. প্রথমবার খুললে **"First Time Setup"** পেজ দেখাবে
+## ৫.১ — Admin Panel খুলুন
 
-### ৫.২ — Step 1: Panel Login সেট করুন
-1. **Panel Username** দিন (যেকোনো নাম, যেমন: `admin`)
-2. **Panel Password** দিন (শক্তিশালী পাসওয়ার্ড)
-3. Password confirm করুন
+ব্রাউজারে যান:
+```
+https://rn-coin-hunt.onrender.com/admin-panel/
+```
+*(rn-coin-hunt জায়গায় আপনার আসল Render URL বসান)*
+
+## ৫.২ — Step 1: Panel Login তৈরি করুন
+
+1. **Panel Username** বক্সে একটা username লিখুন (যেমন: `admin`)
+2. **Panel Password** বক্সে একটা পাসওয়ার্ড লিখুন (কমপক্ষে ৬ অক্ষর)
+3. **Confirm Password** বক্সে একই পাসওয়ার্ড আবার লিখুন
 4. **"Next →"** চাপুন
 
-### ৫.৩ — Step 2: Firebase Config দিন
-1. ধাপ ১.৫-এ সেভ করা Firebase Config-এর মানগুলো বক্সগুলোতে বসান:
-   - **API Key** → apiKey মানটা
-   - **Auth Domain** → authDomain মানটা
-   - **Project ID** → projectId মানটা
-   - **Storage Bucket** → storageBucket মানটা
-   - **Messaging Sender ID** → messagingSenderId মানটা
-   - **App ID** → appId মানটা
-2. **"Next →"** চাপুন
+## ৫.৩ — Step 2: Firebase Config দিন
 
-### ৫.৪ — Step 3: Admin UID দিন
-> **Admin UID কোথায় পাবেন?**
-> 1. প্রথমে User App খুলুন: `https://rn-coin-hunt.onrender.com/user-app/`
-> 2. আপনার email দিয়ে **Register** করুন
-> 3. Firebase Console → **Authentication** → **Users** ট্যাব
-> 4. আপনার email খুঁজুন → পাশে **UID** কলামে যে লম্বা কোড আছে সেটা কপি করুন
+ধাপ ১.৫-এ নোটপ্যাডে সেভ করা মানগুলো এখানে বক্সে বসান:
 
-1. সেই UID বক্সে পেস্ট করুন
+| বক্সের নাম | কোথা থেকে কপি করবেন |
+|-----------|---------------------|
+| API Key | `apiKey:` এর পরের মান (quotes ছাড়া) |
+| Auth Domain | `authDomain:` এর পরের মান |
+| Project ID | `projectId:` এর পরের মান |
+| Storage Bucket | `storageBucket:` এর পরের মান |
+| Messaging Sender ID | `messagingSenderId:` এর পরের মান |
+| App ID | `appId:` এর পরের মান |
+
+5. **"Next →"** চাপুন
+
+## ৫.৪ — Step 3: Admin UID দিন
+
+**Admin UID কীভাবে পাবেন:**
+
+1. নতুন ট্যাবে যান → User App খুলুন:
+   ```
+   https://rn-coin-hunt.onrender.com/user-app/
+   ```
+2. **"Create Account"** দিয়ে আপনার email ও password দিয়ে register করুন
+3. এবার **Firebase Console** খুলুন → **Authentication** → **Users** ট্যাব
+4. আপনার email এর পাশে **User UID** কলামে একটা লম্বা কোড দেখবেন
+5. সেই কোডটা **কপি** করুন
+
+**Admin Panel-এ ফিরে আসুন:**
+1. **Admin UID(s)** বক্সে সেই কোড পেস্ট করুন
 2. **"Finish Setup ✓"** চাপুন
-3. এখন **Login** করুন username ও password দিয়ে
-
-### ৫.৫ — App Settings কনফিগার করুন
-1. Admin Panel-এ লগিন করুন
-2. বামে **"Settings"** ক্লিক করুন
-3. **"App Settings"** ট্যাবে যান
-4. Reward, Limit, Payment Methods — সব নিজের মতো সেট করুন
-5. **"Save App Settings"** চাপুন
+3. এখন username ও password দিয়ে **লগিন** করুন
 
 ---
 
-## ধাপ ৬ — Telegram Bot সেটআপ করুন
+## ৫.৫ — App Settings কনফিগার করুন
 
-### ৬.১ — Bot Menu Button সেট করুন
-Telegram-এ @BotFather খুলুন:
+1. Admin Panel-এ লগিন করার পর বামে **"Settings"** ক্লিক করুন
+2. **"App Settings"** ট্যাবে ক্লিক করুন
+3. নিচের মানগুলো সেট করুন (পরে যেকোনো সময় পরিবর্তন করা যাবে):
+
+| Setting | সুপারিশকৃত মান | মানে |
+|---------|----------------|------|
+| Daily Ad Limit | `10` | প্রতিদিন সর্বোচ্চ কতটা Ad দেখা যাবে |
+| Ad Cooldown | `30` | প্রতিটা Ad-এর মাঝে কত সেকেন্ড বিরতি |
+| Daily Math Limit | `10` | প্রতিদিন কতটা Math Quiz |
+| Math Cooldown | `30` | Math Quiz-এর মাঝে বিরতি |
+| Check-in Coins | `50` | প্রতিদিন Check-in করলে কত Coin |
+| Referral Bonus | `100` | কেউ Refer করলে কত Coin |
+| Ad Reward | `50` | একটা Ad দেখলে কত Coin |
+| Math Quiz Reward | `10` | একটা Quiz করলে কত Coin |
+| Min Withdrawal | `5000` | কমপক্ষে কত Coin হলে Withdraw করা যাবে |
+| Exchange: Coins | `1000` | ১০০০ Coin = |
+| Exchange: ₹ | `10` | ১০ টাকা |
+| Payment Methods | `UPI, Paytm, bKash` | আপনার দেশ অনুযায়ী লিখুন |
+
+4. **"Save App Settings"** চাপুন
+
+---
+
+# ধাপ ৬ — Telegram Bot সেটআপ করুন
+
+## ৬.১ — Menu Button সেট করুন
+
+Telegram-এ **@BotFather** খুলুন → এই কমান্ড পাঠান:
+
 ```
 /setmenubutton
-→ আপনার bot সিলেক্ট করুন
-→ URL দিন: https://rn-coin-hunt.onrender.com/user-app/
-→ Button text দিন: 🪙 Open App
 ```
 
-### ৬.২ — Mini App তৈরি করুন
+BotFather জিজ্ঞেস করবে কোন bot → আপনার bot সিলেক্ট করুন।
+তারপর URL চাইবে → পাঠান:
 ```
-/newapp
-→ আপনার bot সিলেক্ট করুন
-→ App title: RN Coin Hunt
-→ Description: Earn coins and withdraw
-→ URL: https://rn-coin-hunt.onrender.com/user-app/
+https://rn-coin-hunt.onrender.com/user-app/
 ```
+*(আপনার আসল URL দিন)*
+
+Button text চাইলে পাঠান:
+```
+🪙 Open App
+```
+
+## ৬.২ — Bot Start করে Test করুন
+
+1. Telegram-এ আপনার bot খুলুন
+2. **"/start"** পাঠান
+3. নিচে **"🪙 Open App"** বাটন দেখা উচিত
+4. বাটনে চাপলে User App খুলবে
 
 ---
 
-## ধাপ ৭ — Monetag Ad যুক্ত করুন (ঐচ্ছিক)
+# ধাপ ৭ — সব কিছু কাজ করছে কিনা চেক করুন
 
-1. **https://monetag.com** → Account তৈরি করুন
-2. **Telegram Mini App** ad format সিলেক্ট করুন
-3. Zone তৈরি করুন → SDK Script কপি করুন
-4. User App-এর `index.html` খুলুন (শুধু এই একটাবার কোড এডিট করতে হবে)
-5. এই মন্তব্যের জায়গায় script বসান:
-   ```html
-   <!-- Monetag Ad SDK: Replace with your Monetag Telegram Mini App ad code -->
-   ```
-
----
-
-## সব কিছু ঠিকঠাক হয়েছে কিনা চেক করুন
-
-| চেক | কীভাবে |
-|-----|--------|
-| User App কাজ করছে | `https://your-app.onrender.com/user-app/` খুলুন |
-| Admin Panel কাজ করছে | `https://your-app.onrender.com/admin-panel/` খুলুন |
-| Bot চালু আছে | Telegram-এ bot-এ মেসেজ পাঠান `/start` |
-| Withdrawal notification | Bot থেকে একটা test withdrawal করুন → Admin Telegram-এ নোটিফিকেশন আসা উচিত |
+| কী চেক করবেন | কীভাবে |
+|-------------|--------|
+| User App | `https://your-app.onrender.com/user-app/` খুলুন → Register করুন |
+| Admin Panel | `https://your-app.onrender.com/admin-panel/` → লগিন করুন |
+| Bot | Telegram-এ bot-এ `/start` পাঠান |
+| Withdrawal test | Bot-এ Balance চাপুন → Withdrawal করুন → Admin Panel-এ আসে কিনা দেখুন |
+| Approve test | Admin Panel থেকে Approve করুন → User App-এর Notifications-এ আসে কিনা দেখুন |
 
 ---
 
-## সমস্যা হলে কী করবেন
+# সমস্যা হলে
 
-**User App খুললে "Firebase not configured" দেখাচ্ছে:**
-→ Render-এ Firebase environment variables ঠিকমতো দেওয়া হয়নি। আবার চেক করুন।
+**"Firebase not configured" দেখাচ্ছে User App-এ:**
+→ Render-এ Main Server সার্ভিসে গিয়ে Environment Variables চেক করুন। সব ৬টা Firebase variable ঠিকমতো আছে কিনা দেখুন।
 
-**Admin Panel-এ লগিন হচ্ছে না:**
-→ Setup-এর সময় দেওয়া username/password মনে নেই? Browser-এর localStorage clear করুন → আবার setup করুন।
+**Admin Panel Setup-এর পর লগিন হচ্ছে না:**
+→ Browser-এ Ctrl+Shift+Delete → Cookies and Site Data clear করুন → আবার Setup করুন।
 
 **Bot কাজ করছে না:**
-→ Render Bot সার্ভিসের Logs চেক করুন। `FIREBASE_SERVICE_ACCOUNT` JSON ঠিকমতো পেস্ট হয়েছে কিনা দেখুন।
+→ Render-এ Bot সার্ভিস → "Logs" ট্যাব দেখুন। `FIREBASE_SERVICE_ACCOUNT` JSON সঠিকভাবে পেস্ট হয়েছে কিনা চেক করুন।
 
-**Withdrawal approve করলে user notify হচ্ছে না:**
-→ Firestore Rules সঠিকভাবে সেট হয়েছে কিনা চেক করুন (ধাপ ১.৪)।
+**Withdrawal Approve করলে User-কে Notify হচ্ছে না:**
+→ Firestore Rules আবার চেক করুন (ধাপ ১.৪)।
