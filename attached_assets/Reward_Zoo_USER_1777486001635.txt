@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>Reward Zoo</title>
+    
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Your Ad Code -->
+    <script src='//libtl.com/sdk.js' data-zone='9391539' data-sdk='show_9391539'></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* Premium Midnight Indigo & Neon Theme */
+        :root {
+            --bg-deep: #09090e;
+            --bg-indigo: #120e1f;
+            --neon-pink: #d946ef;
+            --neon-violet: #8b5cf6;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-muted: #9ca3af;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: radial-gradient(circle at top right, var(--bg-indigo), var(--bg-deep) 70%);
+            background-attachment: fixed;
+            color: var(--text-main); 
+            overflow-x: hidden; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Glassmorphism Classes */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            border-radius: 1.25rem;
+        }
+
+        .glass-nav {
+            background: rgba(9, 9, 14, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .glass-header {
+            background: rgba(9, 9, 14, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        /* Neon Texts & Buttons */
+        .text-neon {
+            background: linear-gradient(135deg, var(--neon-pink), var(--neon-violet));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .btn-neon {
+            background: linear-gradient(135deg, var(--neon-violet), var(--neon-pink));
+            color: white;
+            font-weight: 700;
+            border: none;
+            box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3);
+            transition: all 0.2s ease-in-out;
+            transform: scale(1);
+        }
+        .btn-neon:hover {
+            box-shadow: 0 6px 20px rgba(217, 70, 239, 0.5);
+        }
+        .btn-neon:active { transform: scale(0.96); }
+
+        .btn-disabled {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.3);
+            box-shadow: none;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* Inputs */
+        .input-glass {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            width: 100%;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            transition: all 0.3s;
+        }
+        .input-glass:focus {
+            outline: none;
+            border-color: var(--neon-violet);
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+        }
+        
+        .main-page { display: none; }
+        .main-page.active { display: flex; animation: fadeIn 0.4s ease-in-out; }
+        .sub-page { display: none; }
+        .sub-page.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        
+        .bottom-nav a { color: var(--text-muted); transition: all 0.2s; }
+        .bottom-nav a.active { color: white; text-shadow: 0 0 10px rgba(217, 70, 239, 0.5); }
+        .bottom-nav a.active svg { stroke: url(#neon-gradient); fill: rgba(217, 70, 239, 0.2); }
+        
+        .notification-dot {
+            position: absolute; top: -2px; right: -2px; width: 10px; height: 10px;
+            background-color: var(--neon-pink); border-radius: 50%; box-shadow: 0 0 8px var(--neon-pink); display: none;
+        }
+        
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 1.5rem); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+
+    <!-- SVG Def for Icon Gradient -->
+    <svg width="0" height="0" class="absolute hidden">
+        <linearGradient id="neon-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop stop-color="#d946ef" offset="0%" />
+            <stop stop-color="#8b5cf6" offset="100%" />
+        </linearGradient>
+    </svg>
+</head>
+<body class="max-w-md mx-auto relative h-screen overflow-y-auto">
+
+    <!-- App Loader -->
+    <div id="loader" class="hidden fixed inset-0 bg-[#09090e] bg-opacity-90 flex items-center justify-center z-[100] backdrop-blur-md">
+        <div class="animate-spin rounded-full h-14 w-14 border-t-4 border-b-4 border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.5)]"></div>
+    </div>
+
+    <!-- Authentication Section -->
+    <div id="auth-section" class="min-h-screen p-6 flex-col justify-center main-page">
+        <div class="text-center mb-10">
+            <span class="text-7xl mb-4 block drop-shadow-[0_0_15px_rgba(217,70,239,0.5)]">🦁</span>
+            <h1 class="text-4xl text-neon tracking-tight">Reward Zoo</h1>
+            <p class="text-gray-400 mt-2 text-sm font-medium">Complete tasks to earn premium rewards</p>
+        </div>
+        
+        <div id="auth-container">
+            <!-- Login View -->
+            <div id="login-view" class="glass-card p-6">
+                <h2 class="text-xl font-bold text-white mb-5">Welcome Back</h2>
+                <input id="login-email" type="email" placeholder="Email Address" class="input-glass mb-4">
+                <div class="relative mb-6">
+                    <input id="login-password" type="password" placeholder="Password" class="input-glass pr-12">
+                    <button type="button" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition" onclick="togglePassword('login-password', this)">
+                        <i data-lucide="eye" class="eye-icon w-5 h-5"></i><i data-lucide="eye-off" class="eye-off-icon w-5 h-5 hidden"></i>
+                    </button>
+                </div>
+                <button id="login-btn" class="w-full py-3.5 rounded-xl btn-neon text-lg">Log In</button>
+                <p class="text-center text-gray-400 text-sm mt-5">New here? <a href="#" id="show-signup" class="font-bold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-violet-400">Sign Up</a></p>
+            </div>
+            
+            <!-- Signup View -->
+            <div id="signup-view" class="hidden glass-card p-6">
+                <h2 class="text-xl font-bold text-white mb-5">Create Account</h2>
+                <input id="signup-name" type="text" placeholder="Full Name" class="input-glass mb-4">
+                <input id="signup-email" type="email" placeholder="Email Address" class="input-glass mb-4">
+                <div class="relative mb-6">
+                    <input id="signup-password" type="password" placeholder="Password" class="input-glass pr-12">
+                    <button type="button" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition" onclick="togglePassword('signup-password', this)">
+                        <i data-lucide="eye" class="eye-icon w-5 h-5"></i><i data-lucide="eye-off" class="eye-off-icon w-5 h-5 hidden"></i>
+                    </button>
+                </div>
+                <button id="signup-btn" class="w-full py-3.5 rounded-xl btn-neon text-lg">Sign Up</button>
+                <p class="text-center text-gray-400 text-sm mt-5">Have an account? <a href="#" id="show-login" class="font-bold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-violet-400">Log In</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="min-h-screen flex-col main-page">
+        <!-- Header -->
+        <header class="flex items-center justify-between p-4 sticky top-0 glass-header z-10">
+            <h1 class="text-xl font-bold flex items-center gap-2 text-neon"><span class="text-2xl drop-shadow-md">🦁</span> Reward Zoo</h1>
+            <div class="flex items-center space-x-4">
+                <div id="notification-bell" class="relative cursor-pointer transition p-2 rounded-full hover:bg-white/10">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <div id="notification-dot" class="notification-dot"></div>
+                </div>
+                <div class="font-bold text-sm bg-gradient-to-r from-fuchsia-500/20 to-violet-500/20 border border-fuchsia-500/30 px-3 py-1.5 rounded-full text-white shadow-[0_0_10px_rgba(217,70,239,0.2)]">
+                    <span id="header-balance">0</span> 🪙
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow pb-24">
+            <!-- Home Page (Tasks) -->
+            <div id="home-page" class="p-4 space-y-6 sub-page">
+                <!-- Balance Card -->
+                <div class="glass-card p-6 text-center relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 w-32 h-32 bg-fuchsia-600 rounded-full blur-[60px] opacity-20 pointer-events-none"></div>
+                    <div class="absolute -left-6 -bottom-6 w-32 h-32 bg-violet-600 rounded-full blur-[60px] opacity-20 pointer-events-none"></div>
+                    
+                    <p class="text-gray-400 text-sm font-medium uppercase tracking-wider">Available Balance</p>
+                    <p class="text-5xl font-bold mt-2 mb-5 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 drop-shadow-lg"><span id="coin-balance">0</span></p>
+                    <button id="home-withdraw-btn" class="w-full btn-neon font-bold px-5 py-3.5 rounded-xl flex items-center justify-center gap-2">
+                        <i data-lucide="wallet" class="w-5 h-5"></i> Withdraw Funds
+                    </button>
+                </div>
+                
+                <section>
+                    <h2 class="text-lg font-bold mb-4 px-1 text-white">Earn Coins</h2>
+                    
+                    <div class="space-y-4">
+                        <!-- Check-in -->
+                        <div class="glass-card p-4 flex items-center justify-between group">
+                            <div class="flex items-center space-x-4">
+                                <div class="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 text-cyan-400 p-3 rounded-xl border border-cyan-500/20 group-hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition"><i data-lucide="calendar-check" class="w-6 h-6"></i></div>
+                                <div>
+                                    <h3 class="font-bold text-white text-[15px]">Daily Check-in</h3>
+                                    <p class="text-[11px] font-bold text-fuchsia-400 mt-0.5"><span id="checkin-reward-text">+50 Coins</span></p>
+                                </div>
+                            </div>
+                            <button id="btn-checkin" class="btn-neon px-5 py-2 rounded-lg text-sm font-bold" onclick="handleCheckIn()">Claim</button>
+                        </div>
+                        
+                        <!-- Math Quiz -->
+                        <div class="glass-card p-4 flex items-center justify-between group">
+                            <div class="flex items-center space-x-4">
+                                <div class="bg-gradient-to-br from-violet-500/20 to-purple-500/20 text-violet-400 p-3 rounded-xl border border-violet-500/20 group-hover:shadow-[0_0_15px_rgba(139,92,246,0.3)] transition"><i data-lucide="brain-circuit" class="w-6 h-6"></i></div>
+                                <div>
+                                    <h3 class="font-bold text-white text-[15px]">Math Quiz</h3>
+                                    <p class="text-[11px] font-bold text-fuchsia-400 mt-0.5"><span id="math-reward-text">+10 Coins</span> <span class="text-gray-500 ml-1 font-normal">| Left: <span id="math-left-count" class="text-white">...</span></span></p>
+                                </div>
+                            </div>
+                            <button id="btn-math" class="btn-neon px-5 py-2 rounded-lg text-sm font-bold" onclick="openMathQuiz()">Play</button>
+                        </div>
+
+                        <!-- Watch Ad -->
+                        <div class="glass-card p-4 flex items-center justify-between group">
+                            <div class="flex items-center space-x-4">
+                                <div class="bg-gradient-to-br from-orange-500/20 to-pink-500/20 text-orange-400 p-3 rounded-xl border border-orange-500/20 group-hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] transition"><i data-lucide="play-circle" class="w-6 h-6"></i></div>
+                                <div>
+                                    <h3 class="font-bold text-white text-[15px]">Watch Video Ad</h3>
+                                    <p class="text-[11px] font-bold text-fuchsia-400 mt-0.5"><span id="ad-reward-text">+50 Coins</span> <span class="text-gray-500 ml-1 font-normal">| Left: <span id="ads-left-count" class="text-white">...</span></span></p>
+                                </div>
+                            </div>
+                            <button id="btn-ad" class="btn-neon px-5 py-2 rounded-lg text-sm font-bold" onclick="claimReward()">Watch</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Wallet Page -->
+            <div id="wallet-page" class="p-4 space-y-6 sub-page">
+                <h2 class="text-2xl font-bold px-1 text-neon">My Wallet</h2>
+                
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center mb-5 pb-5 border-b border-white/10">
+                        <p class="text-sm text-gray-400">Total Balance</p>
+                        <p class="font-bold text-2xl text-white"><span id="wallet-coin-balance">0</span></p>
+                    </div>
+                    
+                    <div class="bg-black/30 p-3.5 rounded-xl mb-5 text-xs text-gray-400 flex justify-between items-center border border-white/5">
+                        <span>Min Withdraw: <b id="min-withdrawal-info" class="text-white">...</b></span>
+                        <span id="coin-value-info" class="font-bold text-fuchsia-400 bg-fuchsia-500/10 px-2.5 py-1 rounded-lg">...</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <input id="withdraw-amount" type="number" placeholder="Enter coin amount" class="input-glass">
+                        <select id="withdraw-method" class="input-glass appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239ca3af%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[length:12px_auto] bg-[position:right_1rem_center]">
+                        </select>
+                        <div id="payment-details-container"></div>
+                        <button id="withdraw-btn" class="w-full py-3.5 rounded-xl btn-neon mt-2 text-[15px]">Submit Request</button>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-xs font-bold mb-3 text-gray-500 px-1 uppercase tracking-wider">Recent Transactions</h3>
+                    <div id="withdrawal-history-list" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- Refer Page -->
+            <div id="refer-page" class="p-4 space-y-6 sub-page">
+                 <h2 class="text-2xl font-bold px-1 text-neon">Invite Friends</h2>
+                 
+                 <div class="glass-card p-6 text-center">
+                     <div class="w-20 h-20 mx-auto bg-gradient-to-br from-fuchsia-500/20 to-violet-500/20 text-fuchsia-400 rounded-full flex items-center justify-center mb-4 border border-fuchsia-500/20 shadow-[0_0_20px_rgba(217,70,239,0.15)]"><i data-lucide="users" class="w-10 h-10"></i></div>
+                     <p class="text-sm font-medium text-gray-300 mb-4">Your Secret Invite Code</p>
+                     
+                     <div class="bg-black/40 p-4 rounded-xl flex items-center justify-center mb-5 border border-dashed border-white/20">
+                         <span id="referral-code" class="text-3xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-violet-400">...</span>
+                         <button id="copy-code-btn" class="ml-4 p-2.5 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition"><i data-lucide="copy" class="w-5 h-5 text-gray-300"></i></button>
+                     </div>
+                     <p class="text-xs text-gray-400 mb-6 leading-relaxed">Both you and your friend will receive <br><span class="text-fuchsia-400 font-bold text-sm"><span id="refer-bonus-text">...</span> Coins</span> bonus instantly!</p>
+                     <button id="share-btn" class="w-full py-3.5 rounded-xl btn-neon flex items-center justify-center gap-2 text-[15px]"><i data-lucide="send" class="w-4 h-4"></i> Share Invite Link</button>
+                 </div>
+                 
+                 <div class="glass-card p-5">
+                    <h3 class="font-bold text-sm mb-3 text-white">Redeem Friend's Code</h3>
+                    <div class="flex gap-3">
+                        <input id="enter-referral-code" type="text" placeholder="Enter code" class="input-glass py-3.5 text-center uppercase font-bold flex-1 tracking-widest">
+                        <button id="apply-referral-btn" class="btn-neon px-6 rounded-xl text-[15px]">Apply</button>
+                    </div>
+                 </div>
+            </div>
+
+            <!-- Profile Page -->
+            <div id="profile-page" class="p-4 space-y-6 sub-page">
+                <h2 class="text-2xl font-bold px-1 text-neon mb-2">My Profile</h2>
+                <div class="glass-card p-8 flex flex-col items-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-fuchsia-500/10 to-transparent pointer-events-none"></div>
+                    <div class="w-24 h-24 bg-gradient-to-br from-fuchsia-500 to-violet-500 rounded-full flex items-center justify-center mb-5 text-4xl font-bold text-white shadow-[0_0_20px_rgba(217,70,239,0.4)] border-4 border-white/10" id="profile-initial">U</div>
+                    <h2 id="profile-name" class="text-2xl font-bold text-white">User Name</h2>
+                    <p id="profile-email" class="text-sm text-gray-400 mt-1">user@email.com</p>
+                    
+                    <div class="w-full mt-8 pt-6 border-t border-white/10 z-10">
+                        <button id="logout-btn" class="w-full py-3.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 font-bold flex items-center justify-center gap-2 transition">
+                            <i data-lucide="log-out" class="w-5 h-5"></i> Secure Log Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notifications Page -->
+            <div id="notifications-page" class="p-4 space-y-4 sub-page">
+                <h2 class="text-2xl font-bold px-1 text-neon mb-2">Notifications</h2>
+                <div id="notifications-list" class="space-y-3"></div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav fixed bottom-0 left-0 right-0 max-w-md mx-auto grid grid-cols-4 items-center text-center py-2 pb-safe glass-nav z-40">
+            <a href="#" class="nav-link flex flex-col items-center gap-1 active py-2" data-page="home-page">
+                <i data-lucide="home" class="w-6 h-6"></i><span class="text-[10px] font-semibold mt-0.5">Home</span>
+            </a>
+            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2" data-page="wallet-page">
+                <i data-lucide="wallet" class="w-6 h-6"></i><span class="text-[10px] font-semibold mt-0.5">Wallet</span>
+            </a>
+            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2" data-page="refer-page">
+                <i data-lucide="users" class="w-6 h-6"></i><span class="text-[10px] font-semibold mt-0.5">Refer</span>
+            </a>
+            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2" data-page="profile-page">
+                <i data-lucide="user" class="w-6 h-6"></i><span class="text-[10px] font-semibold mt-0.5">Profile</span>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Custom Alert Modal -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[70] p-4 backdrop-blur-sm transition-opacity">
+        <div class="glass-card p-6 w-full max-w-[320px] text-center border-t border-l border-white/20">
+            <div class="w-14 h-14 mx-auto bg-gradient-to-br from-fuchsia-500/20 to-violet-500/20 text-fuchsia-400 rounded-full flex items-center justify-center mb-5 border border-fuchsia-500/30">
+                <i data-lucide="info" class="w-7 h-7"></i>
+            </div>
+            <p id="alert-message" class="mb-6 text-[15px] font-medium text-white"></p>
+            <button id="alert-ok-btn" class="btn-neon py-3 rounded-xl w-full text-[15px]">Understood</button>
+        </div>
+    </div>
+
+    <!-- Math Quiz Modal -->
+    <div id="math-quiz-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+        <div class="glass-card p-6 w-full max-w-[320px] text-center">
+            <h3 class="font-bold text-xl text-white mb-1">Brain Teaser</h3>
+            <p class="text-xs text-fuchsia-400 mb-6 font-medium">Solve & watch an ad to earn <span id="math-modal-reward">...</span> Coins!</p>
+            
+            <div class="bg-black/40 p-5 rounded-2xl mb-5 border border-white/5 shadow-inner">
+                <span id="math-question" class="text-4xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-violet-400">? + ?</span>
+            </div>
+            
+            <input id="math-answer" type="number" placeholder="Enter Answer" class="input-glass py-4 text-center text-xl font-bold mb-6 tracking-widest">
+            
+            <div class="flex gap-3">
+                <button onclick="closeMathQuiz()" class="flex-1 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold hover:bg-white/10 transition">Cancel</button>
+                <button onclick="submitMathQuiz()" class="flex-1 py-3.5 rounded-xl btn-neon text-[15px]">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDJWJN4y9UHUVi7YL41RfluRyj_ovILeUM",
+            authDomain: "reward-zoo-61000.firebaseapp.com",
+            databaseURL: "https://reward-zoo-61000-default-rtdb.firebaseio.com",
+            projectId: "reward-zoo-61000",
+            storageBucket: "reward-zoo-61000.firebasestorage.app",
+            messagingSenderId: "105510698749",
+            appId: "1:105510698749:web:69ff11ae5439ce76f2c894"
+        };
+        
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit, increment } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let userData = null;
+        let appConfig = {};
+        let currentMathAnswer = 0;
+        let timerInterval = null;
+
+        const loader = document.getElementById('loader');
+
+        window.togglePassword = function(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const eyeIcon = btn.querySelector('.eye-icon');
+            const eyeOffIcon = btn.querySelector('.eye-off-icon');
+            if (input.type === 'password') { input.type = 'text'; eyeIcon.classList.add('hidden'); eyeOffIcon.classList.remove('hidden'); } 
+            else { input.type = 'password'; eyeIcon.classList.remove('hidden'); eyeOffIcon.classList.add('hidden'); }
+        };
+
+        window.onload = () => {
+            // SAFE TELEGRAM CHECK (Fixes Black Screen Crash)
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.expand();
+                tg.ready();
+            }
+            
+            lucide.createIcons();
+            setupEventListeners();
+            showMainPage('auth-section');
+            onAuthStateChanged(auth, handleAuthStateChange);
+        };
+
+        async function handleAuthStateChange(user) {
+            if (user) {
+                loader.style.display = 'flex';
+                currentUser = user;
+                try {
+                    await fetchAppConfig();
+                    await fetchUserData();
+                    if (userData && userData.isBlocked) { showAlert("Your account has been blocked by the admin."); await signOut(auth); return; }
+                    
+                    // --- AUTO REFERRAL CHECK AFTER SUCCESSFUL LOGIN ---
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
+                        const startParam = window.Telegram.WebApp.initDataUnsafe.start_param;
+                        if (startParam && !userData.referredBy && startParam !== userData.referralCode) {
+                            await autoApplyReferral(startParam);
+                        }
+                    }
+
+                    await checkNewNotifications();
+                    updateUI();
+                    startCooldownTimers();
+                    showMainPage('app-container');
+                    navigateTo('home-page');
+                } catch (error) { console.error("Error:", error); showAlert("Failed to load data."); } 
+                finally { loader.style.display = 'none'; }
+            } else {
+                currentUser = null; userData = null;
+                if(timerInterval) clearInterval(timerInterval);
+                showMainPage('auth-section'); loader.style.display = 'none';
+            }
+        }
+
+        async function autoApplyReferral(code) {
+            const bonus = appConfig.referralBonus || 100;
+            try {
+                const snap = await getDocs(query(collection(db, "users"), where("referralCode", "==", code)));
+                if (!snap.empty) {
+                    const refDoc = snap.docs[0];
+                    await updateDoc(doc(db, "users", refDoc.id), { balance: increment(bonus) });
+                    await updateDoc(doc(db, "users", currentUser.uid), { balance: increment(bonus), referredBy: code });
+                    userData.balance += bonus; 
+                    userData.referredBy = code;
+                    updateUI();
+                    showAlert(`🎉 You received ${bonus} coins as sign-up bonus from the invite link!`);
+                }
+            } catch(e) { console.error("Auto Refer Error", e); }
+        }
+
+        async function fetchAppConfig() {
+            const configRef = doc(db, "config", "main");
+            try {
+                const snap = await getDoc(configRef);
+                const data = snap.exists() ? snap.data() : {};
+                appConfig = {
+                    minWithdrawal: data.minWithdrawal || 5000, 
+                    paymentMethods: data.paymentMethods || ["UPI", "Paytm"], 
+                    coinValueCoins: data.coinValueCoins || 1000, 
+                    coinValueInr: data.coinValueInr || 10,
+                    dailyAdLimit: data.dailyAdLimit || 10,
+                    dailyMathLimit: data.dailyMathLimit || 10,
+                    adCooldown: data.adCooldown || 60, 
+                    mathCooldown: data.mathCooldown || 60, 
+                    checkinReward: data.checkinReward || 50,
+                    adReward: data.adReward || 50,
+                    mathReward: data.mathReward || 10,
+                    referralBonus: data.referralBonus || 100
+                };
+            } catch (e) { console.error("Config Error:", e); }
+        }
+
+        async function fetchUserData() {
+            if (!currentUser) return;
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            if (userSnap.exists()) {
+                userData = userSnap.data();
+                let updatesNeeded = false; let updateData = {};
+                
+                if (userData.lastAdWatchDate !== todayStr) { updateData.dailyAdCount = 0; updateData.lastAdWatchDate = todayStr; userData.dailyAdCount = 0; userData.lastAdWatchDate = todayStr; updatesNeeded = true; }
+                if (userData.lastMathDate !== todayStr) { updateData.dailyMathCount = 0; updateData.lastMathDate = todayStr; userData.dailyMathCount = 0; userData.lastMathDate = todayStr; updatesNeeded = true; }
+                
+                if (typeof userData.lastMathTime === 'undefined') { updateData.lastMathTime = 0; userData.lastMathTime = 0; updatesNeeded = true; }
+                if (typeof userData.lastAdTime === 'undefined') { updateData.lastAdTime = 0; userData.lastAdTime = 0; updatesNeeded = true; }
+                if (typeof userData.lastCheckInDate === 'undefined') { updateData.lastCheckInDate = null; userData.lastCheckInDate = null; updatesNeeded = true; }
+                
+                if (updatesNeeded) await updateDoc(userRef, updateData);
+            } else {
+                const ownRefCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                const defaultUserData = {
+                    uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], email: currentUser.email,
+                    balance: 50, referralCode: ownRefCode, referredBy: null, lastNotificationCheck: serverTimestamp(), createdAt: serverTimestamp(),
+                    dailyAdCount: 0, lastAdWatchDate: todayStr, lastAdTime: 0,
+                    dailyMathCount: 0, lastMathDate: todayStr, lastMathTime: 0,
+                    lastCheckInDate: null, isBlocked: false
+                };
+                await setDoc(userRef, defaultUserData);
+                const freshSnap = await getDoc(userRef); userData = freshSnap.data();
+            }
+        }
+        
+        function updateUI() {
+            if (!userData) return;
+            const bal = userData.balance || 0;
+            document.getElementById('coin-balance').textContent = bal;
+            document.getElementById('header-balance').textContent = bal;
+            document.getElementById('wallet-coin-balance').textContent = bal;
+            
+            const name = userData.name || 'No Name';
+            document.getElementById('profile-name').textContent = name;
+            document.getElementById('profile-initial').textContent = name.charAt(0).toUpperCase();
+            document.getElementById('profile-email').textContent = userData.email || 'No Email';
+            document.getElementById('referral-code').textContent = userData.referralCode || '...';
+            
+            document.getElementById('min-withdrawal-info').textContent = `${appConfig.minWithdrawal} Coins`;
+            document.getElementById('coin-value-info').textContent = `${appConfig.coinValueCoins} = ₹${appConfig.coinValueInr}`;
+            
+            document.getElementById('checkin-reward-text').textContent = `+${appConfig.checkinReward} Coins`;
+            document.getElementById('math-reward-text').textContent = `+${appConfig.mathReward} Coins`;
+            document.getElementById('math-modal-reward').textContent = appConfig.mathReward;
+            document.getElementById('ad-reward-text').textContent = `+${appConfig.adReward} Coins`;
+            document.getElementById('refer-bonus-text').textContent = appConfig.referralBonus;
+            
+            const methodSelect = document.getElementById('withdraw-method'); methodSelect.innerHTML = '';
+            (appConfig.paymentMethods ||[]).forEach(m => { const opt = document.createElement('option'); opt.value = m; opt.textContent = m; methodSelect.appendChild(opt); });
+            updateDynamicPaymentFields();
+            updateTasksUI(); 
+        }
+
+        function startCooldownTimers() {
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTasksUI, 1000); 
+        }
+
+        function formatTime(ms) {
+            const totalSec = Math.ceil(ms / 1000);
+            const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+            const s = (totalSec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function updateTasksUI() {
+            if(!userData || !appConfig) return;
+            const today = new Date().toISOString().split('T')[0];
+            const now = Date.now();
+            
+            const btnCheckin = document.getElementById('btn-checkin');
+            if (userData.lastCheckInDate === today) {
+                btnCheckin.textContent = 'Claimed';
+                btnCheckin.className = "px-5 py-2 rounded-lg text-sm font-bold btn-disabled";
+            } else {
+                btnCheckin.textContent = 'Claim';
+                btnCheckin.className = "px-5 py-2 rounded-lg text-sm font-bold btn-neon";
+            }
+            
+            const mathLimit = appConfig.dailyMathLimit || 10;
+            const mathLeft = Math.max(0, mathLimit - (userData.dailyMathCount || 0));
+            document.getElementById('math-left-count').textContent = mathLeft;
+            
+            const mathCooldownMs = (appConfig.mathCooldown || 60) * 1000;
+            const mathTimeLeft = mathCooldownMs - (now - (userData.lastMathTime || 0));
+            const btnMath = document.getElementById('btn-math');
+            
+            if (mathLeft <= 0) {
+                btnMath.textContent = 'Done';
+                btnMath.className = "px-5 py-2 rounded-lg text-sm font-bold btn-disabled";
+            } else if (mathTimeLeft > 0) {
+                btnMath.textContent = formatTime(mathTimeLeft);
+                btnMath.className = "px-5 py-2 rounded-lg text-sm font-bold btn-disabled tracking-widest";
+            } else {
+                btnMath.textContent = 'Play';
+                btnMath.className = "px-5 py-2 rounded-lg text-sm font-bold btn-neon";
+            }
+
+            const adLimit = appConfig.dailyAdLimit || 10;
+            const adsLeft = Math.max(0, adLimit - (userData.dailyAdCount || 0));
+            document.getElementById('ads-left-count').textContent = adsLeft;
+
+            const adCooldownMs = (appConfig.adCooldown || 60) * 1000;
+            const adTimeLeft = adCooldownMs - (now - (userData.lastAdTime || 0));
+            const btnAd = document.getElementById('btn-ad');
+            
+            if (adsLeft <= 0) {
+                btnAd.textContent = 'Done';
+                btnAd.className = "px-5 py-2 rounded-lg text-sm font-bold btn-disabled";
+            } else if (adTimeLeft > 0) {
+                btnAd.textContent = formatTime(adTimeLeft);
+                btnAd.className = "px-5 py-2 rounded-lg text-sm font-bold btn-disabled tracking-widest";
+            } else {
+                btnAd.textContent = 'Watch';
+                btnAd.className = "px-5 py-2 rounded-lg text-sm font-bold btn-neon";
+            }
+        }
+
+        window.handleCheckIn = async function() {
+            const today = new Date().toISOString().split('T')[0];
+            if (userData.lastCheckInDate === today) return showAlert("You have already claimed today's reward!");
+            if (typeof window.show_9391539 !== 'function') return showAlert("Ad service is unavailable. Try again later.");
+            
+            loader.style.display = 'flex';
+            try {
+                await window.show_9391539();
+                await updateDoc(doc(db, "users", currentUser.uid), { lastCheckInDate: today });
+                userData.lastCheckInDate = today;
+                await updateBalance(appConfig.checkinReward || 50);
+                showAlert(`Check-in Successful! +${appConfig.checkinReward} Coins`);
+                updateTasksUI();
+            } catch(e) {
+                console.error("Ad Checkin Error:", e);
+                showAlert("Reward failed! You must watch the complete ad.");
+            }
+            loader.style.display = 'none';
+        }
+
+        window.openMathQuiz = function() {
+            const now = Date.now();
+            const mathCooldownMs = (appConfig.mathCooldown || 60) * 1000;
+            if (userData.dailyMathCount >= (appConfig.dailyMathLimit || 10)) return showAlert("Daily limit reached! Come back tomorrow.");
+            if (now - (userData.lastMathTime || 0) < mathCooldownMs) return;
+
+            const num1 = Math.floor(Math.random() * 20) + 1; const num2 = Math.floor(Math.random() * 20) + 1; const isPlus = Math.random() > 0.5;
+            if (isPlus) { currentMathAnswer = num1 + num2; document.getElementById('math-question').textContent = `${num1} + ${num2} = ?`; } 
+            else { const mx = Math.max(num1, num2); const mn = Math.min(num1, num2); currentMathAnswer = mx - mn; document.getElementById('math-question').textContent = `${mx} - ${mn} = ?`; }
+            
+            document.getElementById('math-answer').value = '';
+            document.getElementById('math-quiz-modal').classList.remove('hidden');
+        }
+
+        window.closeMathQuiz = function() { document.getElementById('math-quiz-modal').classList.add('hidden'); }
+
+        window.submitMathQuiz = async function() {
+            const ansInput = document.getElementById('math-answer').value;
+            if(ansInput === "") return showAlert("Please enter an answer!");
+            
+            if (parseInt(ansInput) === currentMathAnswer) {
+                closeMathQuiz();
+                if (typeof window.show_9391539 !== 'function') return showAlert("Ad service is unavailable. Try again later.");
+                
+                loader.style.display = 'flex';
+                try {
+                    await window.show_9391539();
+                    const newCount = (userData.dailyMathCount || 0) + 1;
+                    const cTime = Date.now();
+                    await updateDoc(doc(db, "users", currentUser.uid), { dailyMathCount: newCount, lastMathTime: cTime });
+                    userData.dailyMathCount = newCount; userData.lastMathTime = cTime;
+                    await updateBalance(appConfig.mathReward || 10);
+                    showAlert(`Correct Answer! +${appConfig.mathReward} Coins`);
+                    updateTasksUI();
+                } catch(e) { 
+                    console.error("Ad Math Error:", e);
+                    showAlert("Reward failed! You must watch the complete ad."); 
+                }
+                loader.style.display = 'none';
+            } else { 
+                closeMathQuiz();
+                showAlert("Wrong Answer! Better luck next time."); 
+            }
+        }
+
+        window.claimReward = async function() {
+            const now = Date.now();
+            const adCooldownMs = (appConfig.adCooldown || 60) * 1000;
+            if (userData.dailyAdCount >= (appConfig.dailyAdLimit || 10)) return showAlert("Daily ad limit reached! Come back tomorrow.");
+            if (now - (userData.lastAdTime || 0) < adCooldownMs) return;
+
+            if (typeof window.show_9391539 !== 'function') return showAlert("Ad service is unavailable. Try again later.");
+            
+            loader.style.display = 'flex';
+            try {
+                await window.show_9391539();
+                const newCount = (userData.dailyAdCount || 0) + 1;
+                const cTime = Date.now();
+                await updateDoc(doc(db, "users", currentUser.uid), { dailyAdCount: newCount, lastAdTime: cTime });
+                userData.dailyAdCount = newCount; userData.lastAdTime = cTime;
+                await updateBalance(appConfig.adReward || 50);
+                showAlert(`Congratulations! You won ${appConfig.adReward} coins.`);
+                updateTasksUI();
+            } catch(e) {
+                console.error("Ad Reward Error:", e);
+                showAlert("Reward failed! You must watch the complete ad.");
+            }
+            loader.style.display = 'none';
+        }
+        
+        async function handleApplyReferralCode() {
+            if (userData.referredBy) return showAlert("You have already used a referral code.");
+            const code = document.getElementById('enter-referral-code').value.trim().toUpperCase();
+            if (!code) return showAlert("Please enter a code.");
+            if (code === userData.referralCode) return showAlert("You cannot use your own code.");
+            
+            loader.style.display = 'flex';
+            const bonus = appConfig.referralBonus || 100;
+            try {
+                const snap = await getDocs(query(collection(db, "users"), where("referralCode", "==", code)));
+                if (!snap.empty) {
+                    const refDoc = snap.docs[0];
+                    await updateDoc(doc(db, "users", refDoc.id), { balance: increment(bonus) });
+                    await updateDoc(doc(db, "users", currentUser.uid), { balance: increment(bonus), referredBy: code });
+                    userData.balance += bonus; userData.referredBy = code;
+                    updateUI();
+                    showAlert(`Code applied! You received ${bonus} coins.`);
+                } else { showAlert("Invalid referral code."); }
+            } catch(e) { showAlert("Error applying code."); }
+            document.getElementById('enter-referral-code').value = ''; loader.style.display = 'none';
+        }
+
+        function updateDynamicPaymentFields() {
+            const sel = document.getElementById('withdraw-method'); if(!sel || !sel.value) return;
+            const method = sel.value.toLowerCase(); let ph = "Enter Payment Details";
+            if (method.includes('upi')) ph = "Enter your UPI ID"; if (method.includes('paytm')) ph = "Enter your Paytm Number";
+            document.getElementById('payment-details-container').innerHTML = `<input id="payment-detail-input" type="text" placeholder="${ph}" class="input-glass mt-4">`;
+        }
+
+        function showMainPage(pId) { document.querySelectorAll('.main-page').forEach(p => p.classList.remove('active')); document.getElementById(pId).classList.add('active'); }
+        function navigateTo(pId) { document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active')); document.getElementById(pId).classList.add('active'); document.querySelectorAll('.nav-link').forEach(l => { l.classList.remove('active'); if (l.dataset.page === pId) l.classList.add('active'); }); window.scrollTo(0, 0); }
+        window.navigateTo = navigateTo;
+
+        function setupEventListeners() {
+            document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-view').classList.add('hidden'); document.getElementById('signup-view').classList.remove('hidden'); });
+            document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('signup-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); });
+            document.getElementById('signup-btn').addEventListener('click', async () => {
+                const n = document.getElementById('signup-name').value, e = document.getElementById('signup-email').value, p = document.getElementById('signup-password').value;
+                if (!n || !e || !p) return showAlert("Fill all fields."); loader.style.display = 'flex';
+                try { await createUserWithEmailAndPassword(auth, e, p); } catch (err) { showAlert(err.message); loader.style.display = 'none'; }
+            });
+            document.getElementById('login-btn').addEventListener('click', async () => {
+                const e = document.getElementById('login-email').value, p = document.getElementById('login-password').value;
+                if (!e || !p) return showAlert("Enter email and password."); loader.style.display = 'flex';
+                try { await signInWithEmailAndPassword(auth, e, p); } catch (err) { showAlert(err.message); loader.style.display = 'none'; }
+            });
+            document.getElementById('logout-btn').addEventListener('click', async () => { await signOut(auth); });
+            document.querySelectorAll('.nav-link').forEach(l => { l.addEventListener('click', (e) => { e.preventDefault(); if (l.dataset.page === 'wallet-page') loadWithdrawalHistory(); navigateTo(l.dataset.page); }); });
+            document.getElementById('notification-bell').addEventListener('click', () => { navigateTo('notifications-page'); loadNotifications(); });
+            document.getElementById('copy-code-btn').addEventListener('click', () => { const txt = document.getElementById('referral-code').textContent; if (navigator.clipboard) { navigator.clipboard.writeText(txt).then(() => showAlert("Copied!")); } else { const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showAlert("Copied!"); } });
+            
+            // --- UPDATED SHARE BUTTON (PERFECT TELEGRAM MINI APP LINK) ---
+            document.getElementById('share-btn').addEventListener('click', () => { 
+                // *** IMPORTANT: Change "YOUR_BOT_USERNAME/app" to your real bot username & app shortname! ***
+                const botAppUrl = "YOUR_BOT_USERNAME/app"; 
+                const refLink = `https://t.me/${botAppUrl}?startapp=${userData.referralCode}`;
+                const txt = `🦁 Join Reward Zoo & get ${appConfig.referralBonus} Coins instantly!\n\nUse my invite link to start earning:`; 
+                
+                const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+                if (tg && tg.openTelegramLink) { 
+                    tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(txt)}`); 
+                } else if (navigator.share) { 
+                    navigator.share({ title: 'Reward Zoo!', text: txt, url: refLink }); 
+                } else {
+                    const fallbackText = `${txt} \n${refLink}`;
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(fallbackText).then(() => showAlert("Invite link copied to clipboard!"));
+                    }
+                }
+            });
+
+            document.getElementById('apply-referral-btn').addEventListener('click', handleApplyReferralCode);
+            document.getElementById('withdraw-btn').addEventListener('click', async () => {
+                const a = parseInt(document.getElementById('withdraw-amount').value), m = document.getElementById('withdraw-method').value, inp = document.getElementById('payment-detail-input'); const det = inp ? inp.value.trim() : ''; const min = appConfig.minWithdrawal || 5000;
+                if (!a || a <= 0) return showAlert("Invalid amount."); if (a < min) return showAlert(`Minimum withdrawal is ${min} coins.`); if (a > userData.balance) return showAlert("Insufficient balance."); if (!det) return showAlert("Enter payment details.");
+                loader.style.display = 'flex';
+                try { await updateBalance(-a); await addDoc(collection(db, "withdrawals"), { userId: currentUser.uid, userName: userData.name, userEmail: userData.email, amount: a, method: m, paymentDetail: det, status: "pending", requestedAt: serverTimestamp() }); showAlert("Request submitted successfully!"); document.getElementById('withdraw-amount').value = ''; if(inp) inp.value = ''; } catch (err) { showAlert("Error: " + err.message); await updateBalance(a); } loader.style.display = 'none';
+            });
+            document.getElementById('home-withdraw-btn').addEventListener('click', () => { navigateTo('wallet-page'); loadWithdrawalHistory(); });
+            document.getElementById('withdraw-method').addEventListener('change', updateDynamicPaymentFields);
+        }
+
+        async function updateBalance(amt) { if (!currentUser) return; await updateDoc(doc(db, "users", currentUser.uid), { balance: increment(amt) }); userData.balance = (userData.balance || 0) + amt; updateUI(); }
+        async function checkNewNotifications() { const lc = userData.lastNotificationCheck; if (!lc || typeof lc.seconds === 'undefined') return; const snap = await getDocs(query(collection(db, "notifications"), where("createdAt", ">", lc), limit(1))); document.getElementById('notification-dot').style.display = snap.empty ? 'none' : 'block'; }
+        async function loadNotifications() { const list = document.getElementById('notifications-list'); list.innerHTML = '<p class="text-gray-400 text-center py-4 text-sm">Loading...</p>'; document.getElementById('notification-dot').style.display = 'none'; try { const snap = await getDocs(query(collection(db, "notifications"), orderBy("createdAt", "desc"))); if (snap.empty) { list.innerHTML = '<div class="glass-card p-5 text-center text-gray-400 text-sm">No new notifications.</div>'; return; } list.innerHTML = ''; snap.forEach(doc => { const msg = doc.data(); const d = msg.createdAt ? msg.createdAt.toDate().toLocaleDateString() : ''; list.innerHTML += `<div class="glass-card p-4 border-l-2 border-fuchsia-500"><div class="flex justify-between items-start mb-1"><h3 class="font-bold text-sm text-white">${msg.title}</h3><p class="text-[10px] text-fuchsia-400">${d}</p></div><p class="text-xs text-gray-400">${msg.message}</p></div>`; }); await updateDoc(doc(db, "users", currentUser.uid), { lastNotificationCheck: serverTimestamp() }); } catch (e) { list.innerHTML = '<p class="text-red-500 text-center text-sm">Error.</p>'; } }
+        async function loadWithdrawalHistory() { const list = document.getElementById('withdrawal-history-list'); list.innerHTML = '<p class="text-gray-400 text-center py-4 text-sm">Loading history...</p>'; try { const snap = await getDocs(query(collection(db, "withdrawals"), where("userId", "==", currentUser.uid))); if (snap.empty) { list.innerHTML = '<div class="glass-card p-5 text-center text-gray-400 text-sm">No withdrawals yet.</div>'; return; } const w =[]; snap.forEach(d => w.push(d.data())); w.sort((a, b) => (b.requestedAt?.seconds || 0) - (a.requestedAt?.seconds || 0)); list.innerHTML = ''; w.forEach(r => { let col = 'text-yellow-400', icn = '🕒'; if (r.status === 'approved') { col = 'text-green-400'; icn = '✅'; } else if (r.status === 'rejected') { col = 'text-red-400'; icn = '❌'; } const d = r.requestedAt ? r.requestedAt.toDate().toLocaleDateString() : ''; list.innerHTML += `<div class="glass-card p-4 flex items-center justify-between"><div><p class="font-bold text-sm text-white">${r.amount} Coins</p><p class="text-[10px] text-gray-400 mt-1">Via ${r.method} • ${d}</p></div><div class="text-right"><span class="text-base drop-shadow-md">${icn}</span><p class="text-[10px] font-bold ${col} uppercase mt-1 tracking-wider">${r.status}</p></div></div>`; }); } catch (e) { list.innerHTML = '<p class="text-red-500 text-center text-sm">Error.</p>'; } }
+        function showAlert(msg) { document.getElementById('alert-message').textContent = msg; document.getElementById('custom-alert').classList.remove('hidden'); document.getElementById('alert-ok-btn').onclick = () => document.getElementById('custom-alert').classList.add('hidden'); }
+        window.showAlert = showAlert;
+    </script>
+</body>
+</html>
