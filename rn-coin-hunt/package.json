@@ -1,0 +1,13 @@
+{
+  "name": "rn-coin-hunt",
+  "version": "1.0.0",
+  "description": "RN Coin Hunt — Telegram Mini App with Admin Panel",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "bot": "node bot/bot.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

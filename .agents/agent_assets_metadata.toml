@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "goLbyAC4kguoWsVR2ZJVD"
+uri = "file://rn-coin-hunt.tar.gz"
+type = "unspecified"
+title = "RN Coin Hunt — Complete Project"

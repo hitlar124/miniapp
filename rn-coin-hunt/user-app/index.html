@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RN Coin Hunt</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Monetag Ad SDK: Replace with your Monetag Telegram Mini App ad code -->
+    <!-- <script src="YOUR_MONETAG_AD_SDK_URL" data-zone="YOUR_ZONE_ID"></script> -->
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-deep: #0a0a14;
+            --bg-card: #111128;
+            --neon-gold: #f59e0b;
+            --neon-orange: #f97316;
+            --neon-blue: #3b82f6;
+            --glass-bg: rgba(255,255,255,0.04);
+            --glass-border: rgba(255,255,255,0.09);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a14 0%, #0d0d22 50%, #0a0a14 100%);
+            background-attachment: fixed;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1.25rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .glass-nav {
+            background: rgba(10,10,20,0.85);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--glass-border);
+        }
+        .glass-header {
+            background: rgba(10,10,20,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .text-neon {
+            background: linear-gradient(135deg, var(--neon-gold), var(--neon-orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        .btn-neon {
+            background: linear-gradient(135deg, var(--neon-gold), var(--neon-orange));
+            color: #0a0a14;
+            font-weight: 700;
+            border: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .btn-neon:active { transform: scale(0.96); }
+        .btn-disabled {
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.25);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .input-glass {
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            width: 100%;
+            padding: 0.9rem 1rem;
+            border-radius: 0.75rem;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+        }
+        .input-glass:focus {
+            outline: none;
+            border-color: var(--neon-gold);
+            box-shadow: 0 0 10px rgba(245,158,11,0.2);
+        }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.35s ease; }
+        .main-view { display: none; }
+        .main-view.active { display: flex; flex-direction: column; animation: fadeIn 0.35s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-link { color: rgba(255,255,255,0.4); transition: all 0.2s; }
+        .nav-link.active { color: #fff; }
+        .nav-link.active svg { color: var(--neon-gold); }
+        .notif-dot {
+            position: absolute; top: -2px; right: -2px;
+            width: 9px; height: 9px;
+            background: var(--neon-orange);
+            border-radius: 50%;
+            display: none;
+        }
+        ::-webkit-scrollbar { width: 0; }
+        .task-icon { border-radius: 0.875rem; padding: 0.75rem; transition: all 0.2s; }
+        .loader-ring {
+            width: 52px; height: 52px;
+            border: 4px solid rgba(245,158,11,0.15);
+            border-top-color: var(--neon-gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="max-w-md mx-auto relative">
+
+    <!-- Loader -->
+    <div id="loader" class="hidden fixed inset-0 z-[100] bg-[#0a0a14]/90 flex items-center justify-center backdrop-blur-md">
+        <div class="loader-ring"></div>
+    </div>
+
+    <!-- AUTH SECTION -->
+    <div id="auth-section" class="main-view min-h-screen p-6 justify-center">
+        <div class="text-center mb-10">
+            <span class="text-7xl block mb-4">🪙</span>
+            <h1 class="text-4xl text-neon tracking-tight">RN Coin Hunt</h1>
+            <p class="text-gray-400 mt-2 text-sm">Complete tasks, earn coins & get rewarded</p>
+        </div>
+        <div id="login-view" class="glass-card p-6">
+            <h2 class="text-xl font-bold mb-5">Welcome Back</h2>
+            <input id="login-email" type="email" placeholder="Email Address" class="input-glass mb-4">
+            <input id="login-password" type="password" placeholder="Password" class="input-glass mb-6">
+            <button id="login-btn" class="w-full py-3.5 rounded-xl btn-neon text-lg">Log In</button>
+            <p class="text-center text-gray-400 text-sm mt-5">New here? <a href="#" id="show-signup" class="font-bold text-yellow-400">Sign Up</a></p>
+        </div>
+        <div id="signup-view" class="hidden glass-card p-6">
+            <h2 class="text-xl font-bold mb-5">Create Account</h2>
+            <input id="signup-name" type="text" placeholder="Full Name" class="input-glass mb-4">
+            <input id="signup-email" type="email" placeholder="Email Address" class="input-glass mb-4">
+            <input id="signup-password" type="password" placeholder="Password (min 6 chars)" class="input-glass mb-6">
+            <button id="signup-btn" class="w-full py-3.5 rounded-xl btn-neon text-lg">Sign Up</button>
+            <p class="text-center text-gray-400 text-sm mt-5">Have an account? <a href="#" id="show-login" class="font-bold text-yellow-400">Log In</a></p>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app-container" class="main-view min-h-screen">
+        <!-- Header -->
+        <header class="flex items-center justify-between p-4 sticky top-0 glass-header z-10">
+            <h1 class="text-xl font-bold text-neon flex items-center gap-2"><span class="text-2xl">🪙</span> RN Coin Hunt</h1>
+            <div class="flex items-center gap-3">
+                <div id="notif-bell" class="relative cursor-pointer p-2 rounded-full hover:bg-white/10 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    <div id="notif-dot" class="notif-dot"></div>
+                </div>
+                <div class="font-bold text-sm bg-yellow-500/10 border border-yellow-500/30 px-3 py-1.5 rounded-full">
+                    <span id="header-balance">0</span> 🪙
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow pb-24">
+            <!-- HOME PAGE -->
+            <div id="home-page" class="page p-4 space-y-5">
+                <div class="glass-card p-6 text-center relative overflow-hidden">
+                    <div class="absolute -right-8 -top-8 w-36 h-36 bg-yellow-500 rounded-full blur-[70px] opacity-10 pointer-events-none"></div>
+                    <div class="absolute -left-8 -bottom-8 w-36 h-36 bg-orange-500 rounded-full blur-[70px] opacity-10 pointer-events-none"></div>
+                    <p class="text-gray-400 text-xs font-semibold uppercase tracking-widest">Available Balance</p>
+                    <p class="text-5xl font-bold mt-2 mb-5 text-white"><span id="coin-balance">0</span> <span class="text-3xl">🪙</span></p>
+                    <button id="home-withdraw-btn" class="w-full btn-neon py-3.5 rounded-xl flex items-center justify-center gap-2 text-[15px]">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                        Withdraw Funds
+                    </button>
+                </div>
+
+                <h2 class="text-lg font-bold px-1">Earn Coins</h2>
+                <div class="space-y-3">
+                    <!-- Daily Check-in -->
+                    <div class="glass-card p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="task-icon bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-[15px]">Daily Check-in</h3>
+                                <p class="text-xs text-yellow-400 font-semibold mt-0.5">+<span id="checkin-reward-text">50</span> Coins</p>
+                            </div>
+                        </div>
+                        <button id="btn-checkin" class="btn-neon px-5 py-2 rounded-lg text-sm font-bold" onclick="handleCheckIn()">Claim</button>
+                    </div>
+
+                    <!-- Math Quiz -->
+                    <div class="glass-card p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="task-icon bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-[15px]">Math Quiz</h3>
+                                <p class="text-xs text-yellow-400 font-semibold mt-0.5">+<span id="math-reward-text">10</span> Coins &nbsp;<span class="text-gray-500 font-normal">Left: <span id="math-left-count" class="text-white">...</span></span></p>
+                            </div>
+                        </div>
+                        <button id="btn-math" class="btn-neon px-5 py-2 rounded-lg text-sm font-bold" onclick="openMathQuiz()">Play</button>
+                    </div>
+
+                    <!-- Watch Ad -->
+                    <div class="glass-card p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="task-icon bg-orange-500/10 border border-orange-500/20 text-orange-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-[15px]">Watch Video Ad</h3>
+                                <p class="text-xs text-yellow-400 font-semibold mt-0.5">+<span id="ad-reward-text">50</span> Coins &nbsp;<span class="text-gray-500 font-normal">Left: <span id="ads-left-count" class="text-white">...</span></span></p>
+                            </div>
+                        </div>
+                        <button id="btn-ad" class="btn-neon px-5 py-2 rounded-lg text-sm font-bold" onclick="watchAd()">Watch</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WALLET PAGE -->
+            <div id="wallet-page" class="page p-4 space-y-5">
+                <h2 class="text-2xl font-bold text-neon">My Wallet</h2>
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center mb-5 pb-5 border-b border-white/10">
+                        <p class="text-sm text-gray-400">Total Balance</p>
+                        <p class="font-bold text-2xl"><span id="wallet-coin-balance">0</span> 🪙</p>
+                    </div>
+                    <div class="bg-black/30 p-3.5 rounded-xl mb-5 text-xs text-gray-400 flex justify-between border border-white/5">
+                        <span>Min Withdraw: <b id="min-withdrawal-info" class="text-white">...</b> Coins</span>
+                        <span class="text-yellow-400 font-bold"><span id="coin-value-info">...</span></span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-3">Use the Telegram bot menu to submit a withdrawal request.</p>
+                    <div id="withdrawal-history-list" class="space-y-3 mt-4"></div>
+                </div>
+            </div>
+
+            <!-- REFER PAGE -->
+            <div id="refer-page" class="page p-4 space-y-5">
+                <h2 class="text-2xl font-bold text-neon">Invite Friends</h2>
+                <div class="glass-card p-6 text-center">
+                    <div class="w-20 h-20 mx-auto bg-yellow-500/10 border border-yellow-500/20 rounded-full flex items-center justify-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    </div>
+                    <p class="text-sm text-gray-300 mb-4">Your Secret Invite Code</p>
+                    <div class="bg-black/40 p-4 rounded-xl flex items-center justify-center mb-5 border border-dashed border-white/20">
+                        <span id="referral-code" class="text-3xl font-bold tracking-widest text-yellow-400">...</span>
+                        <button id="copy-code-btn" class="ml-4 p-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400 mb-6 leading-relaxed">Both you and your friend get <span class="text-yellow-400 font-bold"><span id="refer-bonus-text">...</span> Coins</span> bonus!</p>
+                    <button id="share-btn" class="w-full py-3.5 rounded-xl btn-neon flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                        Share Invite Link
+                    </button>
+                </div>
+                <div class="glass-card p-5">
+                    <h3 class="font-bold text-sm mb-3">Redeem a Friend's Code</h3>
+                    <div class="flex gap-3">
+                        <input id="enter-referral-code" type="text" placeholder="Enter code" class="input-glass py-3 text-center uppercase font-bold tracking-widest flex-1">
+                        <button id="apply-referral-btn" class="btn-neon px-5 rounded-xl text-sm font-bold">Apply</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NOTIFICATIONS PAGE -->
+            <div id="notifications-page" class="page p-4 space-y-3">
+                <h2 class="text-2xl font-bold text-neon">Notifications</h2>
+                <div id="notifications-list" class="space-y-3"></div>
+            </div>
+
+            <!-- PROFILE PAGE -->
+            <div id="profile-page" class="page p-4 space-y-5">
+                <h2 class="text-2xl font-bold text-neon">My Profile</h2>
+                <div class="glass-card p-8 flex flex-col items-center relative overflow-hidden">
+                    <div class="w-24 h-24 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center text-4xl font-bold text-[#0a0a14] mb-5 shadow-lg" id="profile-initial">U</div>
+                    <h2 id="profile-name" class="text-2xl font-bold">User</h2>
+                    <p id="profile-email" class="text-sm text-gray-400 mt-1">email</p>
+                    <div class="w-full mt-8 pt-6 border-t border-white/10">
+                        <button id="logout-btn" class="w-full py-3.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 font-bold flex items-center justify-center gap-2 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                            Secure Log Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Nav -->
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto grid grid-cols-4 py-2 glass-nav z-40">
+            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2 active" data-page="home-page">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span class="text-[10px] font-semibold">Home</span>
+            </a>
+            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2" data-page="wallet-page">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                <span class="text-[10px] font-semibold">Wallet</span>
+            </a>
+            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2" data-page="refer-page">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <span class="text-[10px] font-semibold">Refer</span>
+            </a>
+            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2 relative" data-page="notifications-page">
+                <div class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    <div id="notif-nav-dot" class="notif-dot"></div>
+                </div>
+                <span class="text-[10px] font-semibold">Alerts</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- ALERT MODAL -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+        <div class="glass-card p-6 w-full max-w-[320px] text-center border-t border-white/10">
+            <p id="alert-message" class="mb-6 text-[15px] font-medium text-white"></p>
+            <button id="alert-ok-btn" class="btn-neon py-3 rounded-xl w-full">OK</button>
+        </div>
+    </div>
+
+    <!-- MATH QUIZ MODAL -->
+    <div id="math-quiz-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+        <div class="glass-card p-6 w-full max-w-[320px] text-center">
+            <h3 class="font-bold text-xl mb-1">Brain Teaser</h3>
+            <p class="text-xs text-yellow-400 mb-6">Solve & watch an ad to earn <span id="math-modal-reward">10</span> Coins!</p>
+            <div class="bg-black/40 p-5 rounded-2xl mb-5 border border-white/5">
+                <span id="math-question" class="text-4xl font-bold text-yellow-400">? + ?</span>
+            </div>
+            <input id="math-answer" type="number" placeholder="Your Answer" class="input-glass py-4 text-center text-xl font-bold mb-6 tracking-widest">
+            <div class="flex gap-3">
+                <button onclick="closeMathQuiz()" class="flex-1 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold">Cancel</button>
+                <button onclick="submitMathQuiz()" class="flex-1 py-3.5 rounded-xl btn-neon">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // ============================================================
+        // FIREBASE CONFIG — Replace with your own Firebase project
+        // ============================================================
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let userData = null;
+        let appConfig = {};
+        let mathAnswer = 0;
+        let timerInterval = null;
+        const loader = document.getElementById('loader');
+
+        // ---- AUTH ----
+        document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-view').classList.add('hidden'); document.getElementById('signup-view').classList.remove('hidden'); });
+        document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('signup-view').classList.add('hidden'); document.getElementById('login-view').classList.remove('hidden'); });
+
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value.trim();
+            const pw = document.getElementById('login-password').value;
+            if (!email || !pw) return showAlert('Please enter email and password.');
+            try { await signInWithEmailAndPassword(auth, email, pw); } catch (e) { showAlert(e.message); }
+        });
+
+        document.getElementById('signup-btn').addEventListener('click', async () => {
+            const name = document.getElementById('signup-name').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const pw = document.getElementById('signup-password').value;
+            if (!name || !email || !pw) return showAlert('Please fill all fields.');
+            if (pw.length < 6) return showAlert('Password must be at least 6 characters.');
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, pw);
+                const refCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+                await setDoc(doc(db, 'users', cred.user.uid), {
+                    uid: cred.user.uid, name, email, balance: 50,
+                    referralCode: refCode, referredBy: null,
+                    dailyAdCount: 0, lastAdTime: 0, lastAdWatchDate: '',
+                    dailyMathCount: 0, lastMathTime: 0, lastMathDate: '',
+                    lastCheckInDate: null, isBlocked: false,
+                    lastNotificationCheck: serverTimestamp(), createdAt: serverTimestamp(),
+                    telegramId: null
+                });
+            } catch (e) { showAlert(e.message); }
+        });
+
+        window.onload = () => {
+            if (window.Telegram?.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
+            setupNavigation();
+            showView('auth-section');
+            onAuthStateChanged(auth, handleAuth);
+        };
+
+        async function handleAuth(user) {
+            if (user) {
+                loader.style.display = 'flex';
+                currentUser = user;
+                try {
+                    await loadConfig();
+                    await loadUserData();
+                    if (userData?.isBlocked) { showAlert('Your account has been blocked.'); await signOut(auth); return; }
+                    // Auto referral from Telegram start_param
+                    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+                    if (startParam && !userData.referredBy && startParam !== userData.referralCode) {
+                        await applyReferral(startParam);
+                    }
+                    await checkNotifications();
+                    updateUI();
+                    startTimers();
+                    showView('app-container');
+                    navigateTo('home-page');
+                } catch (e) { showAlert('Failed to load data. Please try again.'); }
+                finally { loader.style.display = 'none'; }
+            } else {
+                currentUser = null; userData = null;
+                if (timerInterval) clearInterval(timerInterval);
+                showView('auth-section');
+                loader.style.display = 'none';
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const snap = await getDoc(doc(db, 'config', 'main'));
+                const d = snap.exists() ? snap.data() : {};
+                appConfig = {
+                    minWithdrawal: d.minWithdrawal || 5000,
+                    coinValueCoins: d.coinValueCoins || 1000,
+                    coinValueInr: d.coinValueInr || 10,
+                    paymentMethods: d.paymentMethods || [],
+                    dailyAdLimit: d.dailyAdLimit || 10,
+                    adCooldown: d.adCooldown || 60,
+                    adReward: d.adReward || 50,
+                    dailyMathLimit: d.dailyMathLimit || 10,
+                    mathCooldown: d.mathCooldown || 60,
+                    mathReward: d.mathReward || 10,
+                    checkinReward: d.checkinReward || 50,
+                    referralBonus: d.referralBonus || 100,
+                };
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadUserData() {
+            const ref = doc(db, 'users', currentUser.uid);
+            const snap = await getDoc(ref);
+            const today = new Date().toISOString().split('T')[0];
+            if (snap.exists()) {
+                userData = snap.data();
+                const updates = {};
+                if (userData.lastAdWatchDate !== today) { updates.dailyAdCount = 0; updates.lastAdWatchDate = today; userData.dailyAdCount = 0; userData.lastAdWatchDate = today; }
+                if (userData.lastMathDate !== today) { updates.dailyMathCount = 0; updates.lastMathDate = today; userData.dailyMathCount = 0; userData.lastMathDate = today; }
+                if (Object.keys(updates).length) await updateDoc(ref, updates);
+            }
+        }
+
+        async function applyReferral(code) {
+            try {
+                const q = query(collection(db, 'users'), where('referralCode', '==', code));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    const bonus = appConfig.referralBonus || 100;
+                    const refUserId = snap.docs[0].id;
+                    await updateDoc(doc(db, 'users', refUserId), { balance: increment(bonus) });
+                    await updateDoc(doc(db, 'users', currentUser.uid), { balance: increment(bonus), referredBy: code });
+                    userData.balance = (userData.balance || 0) + bonus;
+                    userData.referredBy = code;
+                    updateUI();
+                    showAlert(`You received ${bonus} coins as signup bonus!`);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function checkNotifications() {
+            try {
+                const lastCheck = userData.lastNotificationCheck?.toDate ? userData.lastNotificationCheck.toDate() : new Date(0);
+                const q = query(collection(db, 'notifications'), where('createdAt', '>', lastCheck));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    document.getElementById('notif-dot').style.display = 'block';
+                    document.getElementById('notif-nav-dot').style.display = 'block';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function updateUI() {
+            if (!userData) return;
+            const bal = userData.balance || 0;
+            document.getElementById('coin-balance').textContent = bal;
+            document.getElementById('header-balance').textContent = bal;
+            document.getElementById('wallet-coin-balance').textContent = bal;
+            document.getElementById('profile-name').textContent = userData.name || '';
+            document.getElementById('profile-initial').textContent = (userData.name || 'U').charAt(0).toUpperCase();
+            document.getElementById('profile-email').textContent = userData.email || '';
+            document.getElementById('referral-code').textContent = userData.referralCode || '...';
+            document.getElementById('min-withdrawal-info').textContent = appConfig.minWithdrawal;
+            document.getElementById('coin-value-info').textContent = `${appConfig.coinValueCoins} Coins = ₹${appConfig.coinValueInr}`;
+            document.getElementById('checkin-reward-text').textContent = appConfig.checkinReward;
+            document.getElementById('math-reward-text').textContent = appConfig.mathReward;
+            document.getElementById('math-modal-reward').textContent = appConfig.mathReward;
+            document.getElementById('ad-reward-text').textContent = appConfig.adReward;
+            document.getElementById('refer-bonus-text').textContent = appConfig.referralBonus;
+            loadWithdrawalHistory();
+            loadNotifications();
+            updateTasksUI();
+        }
+
+        function startTimers() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTasksUI, 1000);
+        }
+
+        function formatTime(ms) {
+            const s = Math.ceil(ms / 1000);
+            return `${Math.floor(s / 60).toString().padStart(2,'0')}:${(s % 60).toString().padStart(2,'0')}`;
+        }
+
+        function updateTasksUI() {
+            if (!userData || !appConfig) return;
+            const today = new Date().toISOString().split('T')[0];
+            const now = Date.now();
+
+            const btnCheckin = document.getElementById('btn-checkin');
+            if (userData.lastCheckInDate === today) {
+                btnCheckin.textContent = 'Claimed ✓'; btnCheckin.className = 'px-5 py-2 rounded-lg text-sm font-bold btn-disabled';
+            } else {
+                btnCheckin.textContent = 'Claim'; btnCheckin.className = 'btn-neon px-5 py-2 rounded-lg text-sm font-bold';
+            }
+
+            const mathLeft = Math.max(0, (appConfig.dailyMathLimit || 10) - (userData.dailyMathCount || 0));
+            document.getElementById('math-left-count').textContent = mathLeft;
+            const mathWait = (appConfig.mathCooldown || 60) * 1000 - (now - (userData.lastMathTime || 0));
+            const btnMath = document.getElementById('btn-math');
+            if (mathLeft <= 0) { btnMath.textContent = 'Done'; btnMath.className = 'px-5 py-2 rounded-lg text-sm font-bold btn-disabled'; }
+            else if (mathWait > 0) { btnMath.textContent = formatTime(mathWait); btnMath.className = 'px-5 py-2 rounded-lg text-sm font-bold btn-disabled tracking-widest'; }
+            else { btnMath.textContent = 'Play'; btnMath.className = 'btn-neon px-5 py-2 rounded-lg text-sm font-bold'; }
+
+            const adsLeft = Math.max(0, (appConfig.dailyAdLimit || 10) - (userData.dailyAdCount || 0));
+            document.getElementById('ads-left-count').textContent = adsLeft;
+            const adWait = (appConfig.adCooldown || 60) * 1000 - (now - (userData.lastAdTime || 0));
+            const btnAd = document.getElementById('btn-ad');
+            if (adsLeft <= 0) { btnAd.textContent = 'Done'; btnAd.className = 'px-5 py-2 rounded-lg text-sm font-bold btn-disabled'; }
+            else if (adWait > 0) { btnAd.textContent = formatTime(adWait); btnAd.className = 'px-5 py-2 rounded-lg text-sm font-bold btn-disabled tracking-widest'; }
+            else { btnAd.textContent = 'Watch'; btnAd.className = 'btn-neon px-5 py-2 rounded-lg text-sm font-bold'; }
+        }
+
+        window.handleCheckIn = async function() {
+            const today = new Date().toISOString().split('T')[0];
+            if (userData.lastCheckInDate === today) return showAlert('Already claimed today!');
+            const reward = appConfig.checkinReward || 50;
+            try {
+                await updateDoc(doc(db, 'users', currentUser.uid), { balance: increment(reward), lastCheckInDate: today });
+                userData.balance += reward; userData.lastCheckInDate = today;
+                updateUI(); showAlert(`+${reward} Coins earned from Check-in!`);
+            } catch (e) { showAlert(e.message); }
+        };
+
+        window.openMathQuiz = function() {
+            const a = Math.floor(Math.random() * 50) + 1;
+            const b = Math.floor(Math.random() * 50) + 1;
+            const ops = ['+', '-', '*'];
+            const op = ops[Math.floor(Math.random() * ops.length)];
+            mathAnswer = op === '+' ? a + b : op === '-' ? a - b : a * b;
+            document.getElementById('math-question').textContent = `${a} ${op} ${b}`;
+            document.getElementById('math-answer').value = '';
+            document.getElementById('math-quiz-modal').classList.remove('hidden');
+        };
+
+        window.closeMathQuiz = function() { document.getElementById('math-quiz-modal').classList.add('hidden'); };
+
+        window.submitMathQuiz = async function() {
+            const ans = parseInt(document.getElementById('math-answer').value);
+            if (isNaN(ans)) return showAlert('Please enter a number.');
+            if (ans !== mathAnswer) { showAlert('Wrong answer! Try again.'); return; }
+            closeMathQuiz();
+            await giveAdReward('math');
+        };
+
+        window.watchAd = async function() {
+            // TODO: Replace with your Monetag Telegram Mini App ad call
+            // Example: if (window.show_YOURZONEID) { window.show_YOURZONEID(); }
+            // After ad completes, call giveAdReward('ad')
+            await giveAdReward('ad');
+        };
+
+        async function giveAdReward(type) {
+            const now = Date.now();
+            const today = new Date().toISOString().split('T')[0];
+            const isAd = type === 'ad';
+            const limit = isAd ? (appConfig.dailyAdLimit || 10) : (appConfig.dailyMathLimit || 10);
+            const count = isAd ? (userData.dailyAdCount || 0) : (userData.dailyMathCount || 0);
+            const cooldownMs = (isAd ? (appConfig.adCooldown || 60) : (appConfig.mathCooldown || 60)) * 1000;
+            const lastTime = isAd ? (userData.lastAdTime || 0) : (userData.lastMathTime || 0);
+            const reward = isAd ? (appConfig.adReward || 50) : (appConfig.mathReward || 10);
+            if (count >= limit) return showAlert('Daily limit reached!');
+            if (now - lastTime < cooldownMs) return showAlert('Please wait for cooldown!');
+            try {
+                const updates = { balance: increment(reward) };
+                if (isAd) { updates.dailyAdCount = increment(1); updates.lastAdTime = now; updates.lastAdWatchDate = today; userData.dailyAdCount = (userData.dailyAdCount || 0) + 1; userData.lastAdTime = now; }
+                else { updates.dailyMathCount = increment(1); updates.lastMathTime = now; updates.lastMathDate = today; userData.dailyMathCount = (userData.dailyMathCount || 0) + 1; userData.lastMathTime = now; }
+                await updateDoc(doc(db, 'users', currentUser.uid), updates);
+                userData.balance += reward;
+                updateUI(); showAlert(`+${reward} Coins earned!`);
+            } catch (e) { showAlert(e.message); }
+        }
+
+        async function loadWithdrawalHistory() {
+            try {
+                const q = query(collection(db, 'withdrawals'), where('userId', '==', currentUser.uid), orderBy('requestedAt', 'desc'));
+                const snap = await getDocs(q);
+                const list = document.getElementById('withdrawal-history-list');
+                if (snap.empty) { list.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">No withdrawal history</p>'; return; }
+                list.innerHTML = snap.docs.map(d => {
+                    const r = d.data();
+                    const statusColor = r.status === 'approved' ? 'text-green-400' : r.status === 'rejected' ? 'text-red-400' : 'text-yellow-400';
+                    return `<div class="glass-card p-4 flex justify-between items-center">
+                        <div><p class="font-bold">${r.amount} Coins</p><p class="text-xs text-gray-400 mt-0.5">${r.method || ''}</p>${r.reason ? `<p class="text-xs text-red-400 mt-1">Reason: ${r.reason}</p>` : ''}</div>
+                        <span class="text-xs font-bold ${statusColor} uppercase">${r.status}</span>
+                    </div>`;
+                }).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadNotifications() {
+            try {
+                const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
+                const snap = await getDocs(q);
+                const list = document.getElementById('notifications-list');
+                const userNotifQ = query(collection(db, 'user_notifications'), where('userId', '==', currentUser.uid), orderBy('createdAt', 'desc'));
+                const userSnap = await getDocs(userNotifQ);
+
+                let html = '';
+                userSnap.docs.forEach(d => {
+                    const n = d.data();
+                    const color = n.type === 'approved' ? 'text-green-400' : n.type === 'rejected' ? 'text-red-400' : 'text-yellow-400';
+                    html += `<div class="glass-card p-4"><p class="font-bold ${color}">${n.title}</p><p class="text-sm text-gray-300 mt-1">${n.message}</p></div>`;
+                });
+                snap.docs.forEach(d => {
+                    const n = d.data();
+                    html += `<div class="glass-card p-4"><p class="font-bold text-white">${n.title}</p><p class="text-sm text-gray-300 mt-1">${n.message}</p></div>`;
+                });
+                list.innerHTML = html || '<p class="text-center text-gray-500 text-sm py-4">No notifications</p>';
+                await updateDoc(doc(db, 'users', currentUser.uid), { lastNotificationCheck: serverTimestamp() });
+                document.getElementById('notif-dot').style.display = 'none';
+                document.getElementById('notif-nav-dot').style.display = 'none';
+            } catch (e) { console.error(e); }
+        }
+
+        // Refer & Share
+        document.getElementById('copy-code-btn').addEventListener('click', () => {
+            navigator.clipboard.writeText(userData.referralCode || '');
+            showAlert('Code copied!');
+        });
+
+        document.getElementById('share-btn').addEventListener('click', () => {
+            const botUsername = 'YOUR_BOT_USERNAME'; // Replace with your bot username
+            const code = userData.referralCode || '';
+            const url = `https://t.me/${botUsername}?start=${code}`;
+            if (window.Telegram?.WebApp) { window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent('Join RN Coin Hunt and earn coins! Use my code: ' + code)}`); }
+            else { navigator.clipboard.writeText(url); showAlert('Link copied!'); }
+        });
+
+        document.getElementById('apply-referral-btn').addEventListener('click', async () => {
+            const code = document.getElementById('enter-referral-code').value.trim().toUpperCase();
+            if (!code) return showAlert('Enter a referral code.');
+            if (userData.referredBy) return showAlert('You have already used a referral code.');
+            if (code === userData.referralCode) return showAlert('You cannot use your own code.');
+            await applyReferral(code);
+        });
+
+        document.getElementById('home-withdraw-btn').addEventListener('click', () => navigateTo('wallet-page'));
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+        document.getElementById('alert-ok-btn').addEventListener('click', () => document.getElementById('custom-alert').classList.add('hidden'));
+        document.getElementById('notif-bell').addEventListener('click', () => navigateTo('notifications-page'));
+
+        function showAlert(msg) {
+            document.getElementById('alert-message').textContent = msg;
+            document.getElementById('custom-alert').classList.remove('hidden');
+        }
+
+        function showView(id) {
+            document.querySelectorAll('.main-view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(a => {
+                a.classList.toggle('active', a.dataset.page === pageId);
+            });
+        }
+
+        function setupNavigation() {
+            document.querySelectorAll('.nav-link').forEach(a => {
+                a.addEventListener('click', (e) => { e.preventDefault(); navigateTo(a.dataset.page); });
+            });
+        }
+    </script>
+</body>
+</html>

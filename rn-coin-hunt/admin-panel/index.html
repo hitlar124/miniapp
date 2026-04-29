@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RN Coin Hunt — Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0a14;
+            --neon-gold: #f59e0b;
+            --neon-orange: #f97316;
+            --glass-bg: rgba(255,255,255,0.04);
+            --glass-border: rgba(255,255,255,0.09);
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0a14; color: #fff; }
+        .glass-card { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 1rem; }
+        .sidebar { background: rgba(10,10,20,0.7); backdrop-filter: blur(20px); border-right: 1px solid var(--glass-border); }
+        .sidebar a { border-left: 3px solid transparent; transition: all 0.2s; color: rgba(255,255,255,0.4); }
+        .sidebar a:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .sidebar a.active { background: linear-gradient(90deg, rgba(245,158,11,0.12) 0%, transparent 100%); color: #fff; border-left-color: var(--neon-gold); }
+        .text-neon { background: linear-gradient(135deg, var(--neon-gold), var(--neon-orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+        .btn-neon { background: linear-gradient(135deg, var(--neon-gold), var(--neon-orange)); color: #0a0a14; font-weight: 700; border: none; transition: all 0.2s; cursor: pointer; }
+        .btn-neon:hover { opacity: 0.9; }
+        .btn-danger { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); transition: all 0.2s; cursor: pointer; }
+        .btn-danger:hover { background: rgba(239,68,68,0.2); }
+        .btn-success { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); transition: all 0.2s; cursor: pointer; }
+        .btn-success:hover { background: rgba(34,197,94,0.2); }
+        .input-glass { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); color: #fff; width: 100%; padding: 0.7rem 1rem; border-radius: 0.5rem; font-family: 'Inter', sans-serif; }
+        .input-glass:focus { outline: none; border-color: var(--neon-gold); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.9rem 1rem; text-align: left; border-bottom: 1px solid var(--glass-border); }
+        th { color: rgba(255,255,255,0.4); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.35s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #0a0a14; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        img.qr-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 0.5rem; cursor: pointer; border: 1px solid var(--glass-border); }
+        #qr-lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; align-items: center; justify-content: center; }
+        #qr-lightbox.open { display: flex; }
+        #qr-lightbox img { max-width: 320px; max-height: 320px; border-radius: 1rem; border: 2px solid var(--neon-gold); }
+    </style>
+</head>
+<body class="h-screen overflow-hidden">
+
+    <!-- Admin Login -->
+    <div id="admin-login-view" class="h-screen flex items-center justify-center">
+        <div class="glass-card w-full max-w-md p-8 space-y-5 mx-4">
+            <div class="text-center mb-4">
+                <span class="text-5xl block mb-2">🪙</span>
+                <h1 class="text-3xl font-bold text-neon">Admin Portal</h1>
+                <p class="text-gray-400 text-sm mt-1">RN Coin Hunt</p>
+            </div>
+            <input id="admin-email" type="email" placeholder="Admin Email" class="input-glass">
+            <input id="admin-password" type="password" placeholder="Password" class="input-glass">
+            <button id="admin-login-btn" class="w-full btn-neon py-3 rounded-lg mt-2">Secure Login</button>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="admin-dashboard" class="hidden h-screen flex">
+        <!-- Sidebar -->
+        <aside class="sidebar w-60 flex-shrink-0 flex flex-col">
+            <div class="p-5 flex items-center gap-3 border-b border-white/5">
+                <span class="text-xl">🪙</span>
+                <span class="text-lg font-bold text-neon">RN Coin Hunt</span>
+            </div>
+            <nav class="mt-4 flex-1 space-y-0.5 px-2">
+                <a href="#" class="nav-link flex items-center py-3 px-3 font-medium rounded-lg" data-page="dashboard-page">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-link flex items-center py-3 px-3 font-medium rounded-lg" data-page="users-page">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    Users
+                </a>
+                <a href="#" class="nav-link flex items-center py-3 px-3 font-medium rounded-lg relative" data-page="withdrawals-page">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                    Withdrawals
+                    <span id="pending-badge" class="hidden ml-auto bg-orange-500 text-xs font-bold px-2 py-0.5 rounded-full text-white">0</span>
+                </a>
+                <a href="#" class="nav-link flex items-center py-3 px-3 font-medium rounded-lg" data-page="notifications-page">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    Notifications
+                </a>
+                <a href="#" class="nav-link flex items-center py-3 px-3 font-medium rounded-lg" data-page="settings-page">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    Settings
+                </a>
+            </nav>
+            <div class="p-4 border-t border-white/5">
+                <button id="admin-logout-btn" class="w-full flex items-center justify-center py-2.5 px-4 text-red-400 hover:bg-red-500/10 rounded-lg transition font-medium text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    Log Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-7 overflow-y-auto">
+
+            <!-- Dashboard -->
+            <div id="dashboard-page" class="page">
+                <h1 class="text-2xl font-bold mb-7">Overview</h1>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                    <div class="glass-card p-5 flex items-center justify-between">
+                        <div><p class="text-gray-400 text-sm">Total Users</p><p id="total-users" class="text-4xl font-bold mt-1">0</p></div>
+                        <div class="w-12 h-12 bg-blue-500/15 text-blue-400 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>
+                    </div>
+                    <div class="glass-card p-5 flex items-center justify-between">
+                        <div><p class="text-gray-400 text-sm">Pending Withdrawals</p><p id="pending-count" class="text-4xl font-bold mt-1 text-orange-400">0</p></div>
+                        <div class="w-12 h-12 bg-orange-500/15 text-orange-400 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                    </div>
+                    <div class="glass-card p-5 flex items-center justify-between">
+                        <div><p class="text-gray-400 text-sm">Total Approved</p><p id="approved-count" class="text-4xl font-bold mt-1 text-green-400">0</p></div>
+                        <div class="w-12 h-12 bg-green-500/15 text-green-400 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users -->
+            <div id="users-page" class="page">
+                <div class="flex items-center justify-between mb-6 gap-4 flex-wrap">
+                    <h1 class="text-2xl font-bold">User Management</h1>
+                    <div class="flex items-center bg-black/30 border border-white/10 rounded-xl px-4 py-2 w-72">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <input type="text" id="user-search" placeholder="Search name or email..." class="bg-transparent border-none text-white w-full focus:outline-none text-sm">
+                    </div>
+                </div>
+                <div class="glass-card overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table><thead class="bg-black/20"><tr><th>Name</th><th>Email</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="users-table"></tbody></table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Withdrawals -->
+            <div id="withdrawals-page" class="page">
+                <h1 class="text-2xl font-bold mb-6">Withdrawal Requests</h1>
+                <div class="glass-card overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table><thead class="bg-black/20"><tr><th>User</th><th>Amount</th><th>Method</th><th>Account Name</th><th>QR Code</th><th>Requested</th><th>Actions</th></tr></thead>
+                        <tbody id="withdrawals-table"></tbody></table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div id="notifications-page" class="page">
+                <h1 class="text-2xl font-bold mb-6">Broadcast Notification</h1>
+                <div class="glass-card p-7 max-w-2xl">
+                    <div class="mb-5">
+                        <label class="block text-sm font-medium mb-2 text-gray-300">Title</label>
+                        <input type="text" id="notif-title" placeholder="e.g. New Bonus Available!" class="input-glass">
+                    </div>
+                    <div class="mb-7">
+                        <label class="block text-sm font-medium mb-2 text-gray-300">Message</label>
+                        <textarea id="notif-message" rows="4" placeholder="Type your message here..." class="input-glass resize-none"></textarea>
+                    </div>
+                    <button id="send-notif-btn" class="btn-neon px-8 py-3 rounded-lg flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                        Send to All Users
+                    </button>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div id="settings-page" class="page">
+                <h1 class="text-2xl font-bold mb-6">App Configuration</h1>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-card p-6">
+                        <h2 class="text-lg font-bold mb-5 text-yellow-400">Task Limits & Cooldowns</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Daily Ad Limit</label><input type="number" id="s-daily-ad-limit" class="input-glass" placeholder="10"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Ad Cooldown (sec)</label><input type="number" id="s-ad-cooldown" class="input-glass" placeholder="60"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Daily Math Limit</label><input type="number" id="s-daily-math-limit" class="input-glass" placeholder="10"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Math Cooldown (sec)</label><input type="number" id="s-math-cooldown" class="input-glass" placeholder="60"></div>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6">
+                        <h2 class="text-lg font-bold mb-5 text-yellow-400">Coin Rewards</h2>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Check-in Reward</label><input type="number" id="s-checkin-reward" class="input-glass" placeholder="50"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Referral Bonus</label><input type="number" id="s-referral-bonus" class="input-glass" placeholder="100"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Ad Reward</label><input type="number" id="s-ad-reward" class="input-glass" placeholder="50"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Math Quiz Reward</label><input type="number" id="s-math-reward" class="input-glass" placeholder="10"></div>
+                        </div>
+                    </div>
+                    <div class="glass-card p-6 lg:col-span-2">
+                        <h2 class="text-lg font-bold mb-5 text-yellow-400">Withdrawal Settings</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Min Withdrawal (Coins)</label><input type="number" id="s-min-withdrawal" class="input-glass" placeholder="5000"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Exchange: Coins</label><input type="number" id="s-coin-value-coins" class="input-glass" placeholder="1000"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1.5">Exchange: ₹</label><input type="number" id="s-coin-value-inr" class="input-glass" placeholder="10"></div>
+                            <div class="md:col-span-3"><label class="block text-xs text-gray-400 mb-1.5">Payment Methods (comma-separated)</label><input type="text" id="s-payment-methods" class="input-glass" placeholder="UPI, Paytm, Crypto"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end">
+                    <button id="save-settings-btn" class="btn-neon px-10 py-3.5 rounded-xl flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                        Save All Changes
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="custom-alert" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+        <div class="glass-card p-6 w-full max-w-sm text-center"><p id="alert-message" class="mb-5 text-white font-medium"></p><button id="alert-ok-btn" class="btn-neon px-8 py-2.5 rounded-lg w-full">OK</button></div>
+    </div>
+    <div id="custom-confirm" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+        <div class="glass-card p-6 w-full max-w-sm text-center"><p id="confirm-message" class="mb-5 text-white font-medium"></p>
+        <div class="flex gap-3"><button id="confirm-cancel" class="flex-1 py-2.5 rounded-lg bg-white/5 text-white">Cancel</button><button id="confirm-ok" class="flex-1 btn-neon py-2.5 rounded-lg">Confirm</button></div></div>
+    </div>
+    <div id="balance-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+        <div class="glass-card p-6 w-full max-w-sm text-center">
+            <h3 class="text-lg font-bold mb-1">Edit User Coins</h3>
+            <p id="balance-modal-user" class="text-yellow-400 text-sm mb-5"></p>
+            <input type="number" id="new-balance-input" class="input-glass text-center text-lg font-bold mb-5">
+            <div class="flex gap-3"><button onclick="closeBalanceModal()" class="flex-1 py-2.5 rounded-lg bg-white/5 text-white">Cancel</button><button id="save-balance-btn" class="flex-1 btn-neon py-2.5 rounded-lg">Save</button></div>
+        </div>
+    </div>
+    <div id="reject-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+        <div class="glass-card p-6 w-full max-w-sm">
+            <h3 class="text-lg font-bold mb-4">Reject Reason</h3>
+            <textarea id="reject-reason" rows="3" placeholder="Enter reason for rejection..." class="input-glass resize-none mb-5"></textarea>
+            <div class="flex gap-3"><button onclick="closeRejectModal()" class="flex-1 py-2.5 rounded-lg bg-white/5 text-white">Cancel</button><button id="confirm-reject-btn" class="flex-1 btn-danger py-2.5 rounded-lg font-bold">Reject</button></div>
+        </div>
+    </div>
+    <!-- QR Lightbox -->
+    <div id="qr-lightbox" onclick="this.classList.remove('open')">
+        <img id="qr-lightbox-img" src="" alt="QR Code">
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, query, where, onSnapshot, addDoc, serverTimestamp, increment, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // ============================================================
+        // FIREBASE CONFIG — same as user app
+        // ============================================================
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // ============================================================
+        // ADMIN UIDs — Add your Firebase UID here
+        // ============================================================
+        const ADMIN_UIDS = ["YOUR_FIREBASE_UID_HERE"];
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentRejectId = null;
+        let currentRejectUserId = null;
+        let currentRejectAmount = 0;
+        let currentEditUserId = null;
+
+        window.onload = () => {
+            setupNavigation();
+            document.getElementById('admin-login-btn').addEventListener('click', handleLogin);
+            document.getElementById('admin-logout-btn').addEventListener('click', () => signOut(auth));
+            document.getElementById('send-notif-btn').addEventListener('click', sendNotification);
+            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+            document.getElementById('alert-ok-btn').addEventListener('click', () => document.getElementById('custom-alert').classList.add('hidden'));
+            document.getElementById('save-balance-btn').addEventListener('click', saveBalance);
+            document.getElementById('user-search').addEventListener('input', filterUsers);
+
+            onAuthStateChanged(auth, (user) => {
+                if (user && ADMIN_UIDS.includes(user.uid)) {
+                    document.getElementById('admin-login-view').style.display = 'none';
+                    document.getElementById('admin-dashboard').style.display = 'flex';
+                    navigateTo('dashboard-page');
+                    loadDashboard();
+                    loadUsers();
+                    loadWithdrawals();
+                    loadSettings();
+                } else {
+                    document.getElementById('admin-login-view').style.display = 'flex';
+                    document.getElementById('admin-dashboard').style.display = 'none';
+                }
+            });
+        };
+
+        async function handleLogin() {
+            const email = document.getElementById('admin-email').value.trim();
+            const pw = document.getElementById('admin-password').value;
+            if (!email || !pw) return showAlert('Enter email and password.');
+            try {
+                const cred = await signInWithEmailAndPassword(auth, email, pw);
+                if (!ADMIN_UIDS.includes(cred.user.uid)) { await signOut(auth); showAlert('Not authorized.'); }
+            } catch (e) { showAlert(e.message); }
+        }
+
+        function loadDashboard() {
+            onSnapshot(collection(db, 'users'), snap => {
+                document.getElementById('total-users').textContent = snap.size;
+            });
+            onSnapshot(query(collection(db, 'withdrawals'), where('status', '==', 'pending')), snap => {
+                const n = snap.size;
+                document.getElementById('pending-count').textContent = n;
+                const badge = document.getElementById('pending-badge');
+                badge.textContent = n; badge.classList.toggle('hidden', n === 0);
+            });
+            onSnapshot(query(collection(db, 'withdrawals'), where('status', '==', 'approved')), snap => {
+                document.getElementById('approved-count').textContent = snap.size;
+            });
+        }
+
+        function loadUsers() {
+            onSnapshot(collection(db, 'users'), snap => {
+                const tbody = document.getElementById('users-table');
+                tbody.innerHTML = '';
+                snap.forEach(d => {
+                    const u = d.data();
+                    const blocked = u.isBlocked || false;
+                    tbody.innerHTML += `<tr>
+                        <td class="font-medium user-name">${u.name || 'N/A'}</td>
+                        <td class="text-gray-400 user-email">${u.email || ''}</td>
+                        <td class="font-bold text-yellow-400">${u.balance || 0}</td>
+                        <td>${blocked ? '<span class="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-xs font-bold">Blocked</span>' : '<span class="px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-full text-xs font-bold">Active</span>'}</td>
+                        <td class="flex items-center gap-2 flex-wrap">
+                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 transition" onclick="openEditBalance('${d.id}','${(u.name||'').replace(/'/g,"\\'")}',${u.balance||0})">Edit Coins</button>
+                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold ${blocked ? 'btn-success' : 'btn-danger'}" onclick="toggleBlock('${d.id}',${blocked})">${blocked ? 'Unblock' : 'Block'}</button>
+                        </td>
+                    </tr>`;
+                });
+            });
+        }
+
+        function filterUsers() {
+            const term = document.getElementById('user-search').value.toLowerCase();
+            document.querySelectorAll('#users-table tr').forEach(row => {
+                const name = row.querySelector('.user-name')?.textContent.toLowerCase() || '';
+                const email = row.querySelector('.user-email')?.textContent.toLowerCase() || '';
+                row.style.display = name.includes(term) || email.includes(term) ? '' : 'none';
+            });
+        }
+
+        function loadWithdrawals() {
+            onSnapshot(query(collection(db, 'withdrawals'), where('status', '==', 'pending'), orderBy('requestedAt', 'desc')), snap => {
+                const tbody = document.getElementById('withdrawals-table');
+                tbody.innerHTML = '';
+                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500 py-8">No pending requests</td></tr>'; return; }
+                snap.forEach(d => {
+                    const r = d.data();
+                    const date = r.requestedAt?.toDate ? r.requestedAt.toDate().toLocaleString() : 'N/A';
+                    const qrHtml = r.qrCodeUrl ? `<img class="qr-thumb" src="${r.qrCodeUrl}" alt="QR" onclick="openQR('${r.qrCodeUrl}')">` : '<span class="text-gray-500 text-xs">N/A</span>';
+                    tbody.innerHTML += `<tr>
+                        <td><p class="font-medium">${r.userName || 'N/A'}</p><p class="text-xs text-gray-500">${r.userEmail || ''}</p></td>
+                        <td class="font-bold text-yellow-400">${r.amount}</td>
+                        <td class="uppercase text-sm text-gray-300">${r.method || ''}</td>
+                        <td class="text-sm">${r.accountName || 'N/A'}</td>
+                        <td>${qrHtml}</td>
+                        <td class="text-xs text-gray-400">${date}</td>
+                        <td class="flex items-center gap-2 flex-wrap">
+                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold btn-success" onclick="approveWithdrawal('${d.id}','${r.userId}')">Approve</button>
+                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold btn-danger" onclick="openRejectModal('${d.id}','${r.userId}',${r.amount})">Reject</button>
+                        </td>
+                    </tr>`;
+                });
+            });
+        }
+
+        async function loadSettings() {
+            const snap = await getDoc(doc(db, 'config', 'main'));
+            if (snap.exists()) {
+                const c = snap.data();
+                document.getElementById('s-daily-ad-limit').value = c.dailyAdLimit || 10;
+                document.getElementById('s-ad-cooldown').value = c.adCooldown || 60;
+                document.getElementById('s-daily-math-limit').value = c.dailyMathLimit || 10;
+                document.getElementById('s-math-cooldown').value = c.mathCooldown || 60;
+                document.getElementById('s-checkin-reward').value = c.checkinReward || 50;
+                document.getElementById('s-referral-bonus').value = c.referralBonus || 100;
+                document.getElementById('s-ad-reward').value = c.adReward || 50;
+                document.getElementById('s-math-reward').value = c.mathReward || 10;
+                document.getElementById('s-min-withdrawal').value = c.minWithdrawal || 5000;
+                document.getElementById('s-coin-value-coins').value = c.coinValueCoins || 1000;
+                document.getElementById('s-coin-value-inr').value = c.coinValueInr || 10;
+                document.getElementById('s-payment-methods').value = (c.paymentMethods || []).join(', ');
+            }
+        }
+
+        async function saveSettings() {
+            const data = {
+                dailyAdLimit: +document.getElementById('s-daily-ad-limit').value || 10,
+                adCooldown: +document.getElementById('s-ad-cooldown').value || 60,
+                dailyMathLimit: +document.getElementById('s-daily-math-limit').value || 10,
+                mathCooldown: +document.getElementById('s-math-cooldown').value || 60,
+                checkinReward: +document.getElementById('s-checkin-reward').value || 50,
+                referralBonus: +document.getElementById('s-referral-bonus').value || 100,
+                adReward: +document.getElementById('s-ad-reward').value || 50,
+                mathReward: +document.getElementById('s-math-reward').value || 10,
+                minWithdrawal: +document.getElementById('s-min-withdrawal').value || 5000,
+                coinValueCoins: +document.getElementById('s-coin-value-coins').value || 1000,
+                coinValueInr: +document.getElementById('s-coin-value-inr').value || 10,
+                paymentMethods: document.getElementById('s-payment-methods').value.split(',').map(s => s.trim()).filter(Boolean)
+            };
+            try { await setDoc(doc(db, 'config', 'main'), data, { merge: true }); showAlert('Settings saved successfully!'); }
+            catch (e) { showAlert('Error: ' + e.message); }
+        }
+
+        async function sendNotification() {
+            const title = document.getElementById('notif-title').value.trim();
+            const message = document.getElementById('notif-message').value.trim();
+            if (!title || !message) return showAlert('Title and message required.');
+            try {
+                await addDoc(collection(db, 'notifications'), { title, message, createdAt: serverTimestamp() });
+                showAlert('Notification sent to all users!');
+                document.getElementById('notif-title').value = '';
+                document.getElementById('notif-message').value = '';
+            } catch (e) { showAlert(e.message); }
+        }
+
+        window.openEditBalance = (userId, name, bal) => {
+            currentEditUserId = userId;
+            document.getElementById('balance-modal-user').textContent = `Editing: ${name}`;
+            document.getElementById('new-balance-input').value = bal;
+            document.getElementById('balance-modal').classList.remove('hidden');
+        };
+        window.closeBalanceModal = () => { document.getElementById('balance-modal').classList.add('hidden'); currentEditUserId = null; };
+        async function saveBalance() {
+            const val = parseInt(document.getElementById('new-balance-input').value);
+            if (isNaN(val)) return showAlert('Enter a valid number.');
+            try { await updateDoc(doc(db, 'users', currentEditUserId), { balance: val }); showAlert('Balance updated!'); closeBalanceModal(); }
+            catch (e) { showAlert(e.message); }
+        }
+
+        window.toggleBlock = (userId, isBlocked) => {
+            showConfirm(`${isBlocked ? 'Unblock' : 'Block'} this user?`, async () => {
+                try { await updateDoc(doc(db, 'users', userId), { isBlocked: !isBlocked }); showAlert('Done!'); }
+                catch (e) { showAlert(e.message); }
+            });
+        };
+
+        window.approveWithdrawal = (reqId, userId) => {
+            showConfirm('Approve this withdrawal request?', async () => {
+                try {
+                    await updateDoc(doc(db, 'withdrawals', reqId), { status: 'approved', processedAt: serverTimestamp() });
+                    await addDoc(collection(db, 'user_notifications'), {
+                        userId, type: 'approved', title: '✅ Withdrawal Approved!',
+                        message: 'Your withdrawal request has been approved. Payment is on the way!',
+                        createdAt: serverTimestamp()
+                    });
+                    showAlert('Approved! User has been notified.');
+                } catch (e) { showAlert(e.message); }
+            });
+        };
+
+        window.openRejectModal = (reqId, userId, amount) => {
+            currentRejectId = reqId; currentRejectUserId = userId; currentRejectAmount = amount;
+            document.getElementById('reject-reason').value = '';
+            document.getElementById('reject-modal').classList.remove('hidden');
+            document.getElementById('confirm-reject-btn').onclick = async () => {
+                const reason = document.getElementById('reject-reason').value.trim();
+                if (!reason) return showAlert('Reason is required.');
+                closeRejectModal();
+                try {
+                    await updateDoc(doc(db, 'withdrawals', currentRejectId), { status: 'rejected', reason, processedAt: serverTimestamp() });
+                    await updateDoc(doc(db, 'users', currentRejectUserId), { balance: increment(currentRejectAmount) });
+                    await addDoc(collection(db, 'user_notifications'), {
+                        userId: currentRejectUserId, type: 'rejected',
+                        title: '❌ Withdrawal Rejected',
+                        message: `Your withdrawal was rejected. Reason: ${reason}. Coins have been refunded.`,
+                        createdAt: serverTimestamp()
+                    });
+                    showAlert('Rejected. Coins refunded to user.');
+                } catch (e) { showAlert(e.message); }
+            };
+        };
+        window.closeRejectModal = () => { document.getElementById('reject-modal').classList.add('hidden'); };
+
+        window.openQR = (url) => {
+            document.getElementById('qr-lightbox-img').src = url;
+            document.getElementById('qr-lightbox').classList.add('open');
+        };
+
+        function showAlert(msg) { document.getElementById('alert-message').textContent = msg; document.getElementById('custom-alert').classList.remove('hidden'); }
+        function showConfirm(msg, cb) {
+            document.getElementById('confirm-message').textContent = msg;
+            document.getElementById('custom-confirm').classList.remove('hidden');
+            const ok = document.getElementById('confirm-ok');
+            const cancel = document.getElementById('confirm-cancel');
+            const cleanup = () => { document.getElementById('custom-confirm').classList.add('hidden'); ok.onclick = null; cancel.onclick = null; };
+            ok.onclick = () => { cb(); cleanup(); };
+            cancel.onclick = cleanup;
+        }
+
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId)?.classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(a => a.classList.toggle('active', a.dataset.page === pageId));
+        }
+        function setupNavigation() {
+            document.querySelectorAll('.nav-link').forEach(a => a.addEventListener('click', e => { e.preventDefault(); navigateTo(a.dataset.page); }));
+        }
+    </script>
+</body>
+</html>
