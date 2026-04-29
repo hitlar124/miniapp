@@ -7,508 +7,750 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-deep: #0a0a14;
-            --neon-gold: #f59e0b;
-            --neon-orange: #f97316;
-            --glass-bg: rgba(255,255,255,0.04);
-            --glass-border: rgba(255,255,255,0.09);
-        }
+        :root { --gold: #f59e0b; --orange: #f97316; --bg: #09090f; --card: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.09); }
         * { box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background: #0a0a14; color: #fff; }
-        .glass-card { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--glass-border); border-radius: 1rem; }
-        .sidebar { background: rgba(10,10,20,0.7); backdrop-filter: blur(20px); border-right: 1px solid var(--glass-border); }
-        .sidebar a { border-left: 3px solid transparent; transition: all 0.2s; color: rgba(255,255,255,0.4); }
-        .sidebar a:hover { background: rgba(255,255,255,0.05); color: #fff; }
-        .sidebar a.active { background: linear-gradient(90deg, rgba(245,158,11,0.12) 0%, transparent 100%); color: #fff; border-left-color: var(--neon-gold); }
-        .text-neon { background: linear-gradient(135deg, var(--neon-gold), var(--neon-orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
-        .btn-neon { background: linear-gradient(135deg, var(--neon-gold), var(--neon-orange)); color: #0a0a14; font-weight: 700; border: none; transition: all 0.2s; cursor: pointer; }
-        .btn-neon:hover { opacity: 0.9; }
-        .btn-danger { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); transition: all 0.2s; cursor: pointer; }
-        .btn-danger:hover { background: rgba(239,68,68,0.2); }
-        .btn-success { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); transition: all 0.2s; cursor: pointer; }
-        .btn-success:hover { background: rgba(34,197,94,0.2); }
-        .input-glass { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); color: #fff; width: 100%; padding: 0.7rem 1rem; border-radius: 0.5rem; font-family: 'Inter', sans-serif; }
-        .input-glass:focus { outline: none; border-color: var(--neon-gold); }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: #fff; margin: 0; }
+        .glass { background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 1rem; }
+        .sidebar { background: rgba(9,9,15,0.7); backdrop-filter: blur(20px); border-right: 1px solid var(--border); }
+        .nav-link { border-left: 3px solid transparent; transition: all 0.2s; color: rgba(255,255,255,0.45); display: flex; align-items: center; padding: 0.8rem 1rem; font-size: 0.9rem; font-weight: 500; border-radius: 0 0.5rem 0.5rem 0; margin: 2px 0; text-decoration: none; cursor: pointer; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .nav-link.active { background: linear-gradient(90deg, rgba(245,158,11,0.13) 0%, transparent 100%); color: #fff; border-left-color: var(--gold); }
+        .text-neon { background: linear-gradient(135deg, var(--gold), var(--orange)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+        .btn-primary { background: linear-gradient(135deg, var(--gold), var(--orange)); color: #09090f; font-weight: 700; border: none; cursor: pointer; transition: opacity 0.2s; }
+        .btn-primary:hover { opacity: 0.88; }
+        .btn-danger { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); cursor: pointer; transition: all 0.2s; }
+        .btn-danger:hover { background: rgba(239,68,68,0.22); }
+        .btn-success { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); cursor: pointer; transition: all 0.2s; }
+        .btn-success:hover { background: rgba(34,197,94,0.22); }
+        .btn-ghost { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+        .inp { background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.12); color: #fff; width: 100%; padding: 0.7rem 1rem; border-radius: 0.5rem; font-family: 'Inter', sans-serif; font-size: 0.92rem; transition: border-color 0.2s; }
+        .inp:focus { outline: none; border-color: var(--gold); }
+        .inp::placeholder { color: rgba(255,255,255,0.3); }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 0.9rem 1rem; text-align: left; border-bottom: 1px solid var(--glass-border); }
-        th { color: rgba(255,255,255,0.4); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+        th, td { padding: 0.85rem 1rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+        th { color: rgba(255,255,255,0.4); font-weight: 600; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.06em; background: rgba(0,0,0,0.15); }
         tr:hover td { background: rgba(255,255,255,0.02); }
         .page { display: none; }
-        .page.active { display: block; animation: fadeIn 0.35s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: #0a0a14; }
+        .page.active { display: block; animation: fadeIn 0.3s; }
+        .section { display: none; }
+        .section.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #09090f; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-        img.qr-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 0.5rem; cursor: pointer; border: 1px solid var(--glass-border); }
-        #qr-lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; align-items: center; justify-content: center; }
-        #qr-lightbox.open { display: flex; }
-        #qr-lightbox img { max-width: 320px; max-height: 320px; border-radius: 1rem; border: 2px solid var(--neon-gold); }
+        .badge-orange { background: rgba(249,115,22,0.15); color: var(--orange); border: 1px solid rgba(249,115,22,0.3); padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; }
+        .badge-green { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; }
+        .badge-red { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; }
+        .tab-btn { padding: 0.5rem 1.2rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.85rem; cursor: pointer; border: none; transition: all 0.2s; background: transparent; color: rgba(255,255,255,0.4); }
+        .tab-btn.active { background: rgba(245,158,11,0.15); color: var(--gold); }
+        .step-circle { width: 2rem; height: 2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+        img.qr-img { width: 72px; height: 72px; object-fit: cover; border-radius: 0.5rem; border: 1px solid var(--border); cursor: pointer; }
+        #qr-lb { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 300; align-items: center; justify-content: center; cursor: pointer; }
+        #qr-lb.open { display: flex; }
+        #qr-lb img { max-width: 300px; max-height: 300px; border-radius: 1rem; border: 2px solid var(--gold); }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 200; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(4px); }
+        .modal-overlay.open { display: flex; }
+        label.field-label { display: block; font-size: 0.8rem; font-weight: 500; color: rgba(255,255,255,0.55); margin-bottom: 0.4rem; }
+        .setup-step { display: none; }
+        .setup-step.active { display: block; animation: fadeIn 0.3s; }
+        .info-box { background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2); border-radius: 0.75rem; padding: 1rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); line-height: 1.6; }
+        .info-box b { color: var(--gold); }
     </style>
 </head>
 <body class="h-screen overflow-hidden">
 
-    <!-- Admin Login -->
-    <div id="admin-login-view" class="h-screen flex items-center justify-center">
-        <div class="glass-card w-full max-w-md p-8 space-y-5 mx-4">
-            <div class="text-center mb-4">
-                <span class="text-5xl block mb-2">🪙</span>
-                <h1 class="text-3xl font-bold text-neon">Admin Portal</h1>
-                <p class="text-gray-400 text-sm mt-1">RN Coin Hunt</p>
+<!-- ===== SETUP SECTION (First Run) ===== -->
+<div id="setup-section" class="section h-screen items-center justify-center p-4">
+    <div class="glass w-full max-w-lg p-7 relative">
+        <div class="text-center mb-6">
+            <span class="text-5xl block mb-2">🪙</span>
+            <h1 class="text-2xl font-bold text-neon">First Time Setup</h1>
+            <p class="text-gray-400 text-sm mt-1">Configure your admin panel — just once</p>
+        </div>
+
+        <!-- Step 1: Panel Login -->
+        <div class="setup-step active" id="step-1">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="step-circle bg-yellow-500/20 text-yellow-400">1</div>
+                <div><p class="font-bold">Admin Panel Login</p><p class="text-xs text-gray-400">Set your username & password for this panel</p></div>
             </div>
-            <input id="admin-email" type="email" placeholder="Admin Email" class="input-glass">
-            <input id="admin-password" type="password" placeholder="Password" class="input-glass">
-            <button id="admin-login-btn" class="w-full btn-neon py-3 rounded-lg mt-2">Secure Login</button>
+            <div class="space-y-3">
+                <div><label class="field-label">Panel Username</label><input id="setup-username" type="text" placeholder="e.g. admin" class="inp"></div>
+                <div><label class="field-label">Panel Password</label><input id="setup-password" type="password" placeholder="Choose a strong password" class="inp"></div>
+                <div><label class="field-label">Confirm Password</label><input id="setup-password2" type="password" placeholder="Repeat password" class="inp"></div>
+            </div>
+            <button onclick="setupStep1()" class="w-full btn-primary py-3 rounded-xl mt-5">Next →</button>
+        </div>
+
+        <!-- Step 2: Firebase Config -->
+        <div class="setup-step" id="step-2">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="step-circle bg-yellow-500/20 text-yellow-400">2</div>
+                <div><p class="font-bold">Firebase Configuration</p><p class="text-xs text-gray-400">Paste your Firebase project details</p></div>
+            </div>
+            <div class="info-box mb-4">
+                📌 <b>Where to get this:</b><br>
+                Go to <b>console.firebase.google.com</b> → Your Project → Project Settings → Your Apps → Web App → copy the <b>firebaseConfig</b> values
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2"><label class="field-label">API Key</label><input id="fb-apiKey" type="text" placeholder="AIzaSy..." class="inp"></div>
+                <div><label class="field-label">Auth Domain</label><input id="fb-authDomain" type="text" placeholder="yourapp.firebaseapp.com" class="inp"></div>
+                <div><label class="field-label">Project ID</label><input id="fb-projectId" type="text" placeholder="yourapp-id" class="inp"></div>
+                <div><label class="field-label">Storage Bucket</label><input id="fb-storageBucket" type="text" placeholder="yourapp.appspot.com" class="inp"></div>
+                <div><label class="field-label">Messaging Sender ID</label><input id="fb-messagingSenderId" type="text" placeholder="123456789" class="inp"></div>
+                <div class="col-span-2"><label class="field-label">App ID</label><input id="fb-appId" type="text" placeholder="1:123:web:abc123" class="inp"></div>
+            </div>
+            <div class="flex gap-3 mt-5">
+                <button onclick="showSetupStep(1)" class="flex-1 btn-ghost py-3 rounded-xl">← Back</button>
+                <button onclick="setupStep2()" class="flex-1 btn-primary py-3 rounded-xl">Next →</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Admin UID -->
+        <div class="setup-step" id="step-3">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="step-circle bg-yellow-500/20 text-yellow-400">3</div>
+                <div><p class="font-bold">Admin Firebase UID</p><p class="text-xs text-gray-400">Your Firebase account's unique ID</p></div>
+            </div>
+            <div class="info-box mb-4">
+                📌 <b>Where to get this:</b><br>
+                1. Open your <b>User App</b> and create an account with your admin email<br>
+                2. Go to <b>Firebase Console</b> → Authentication → Users<br>
+                3. Find your email → Copy the <b>UID</b> from the table
+            </div>
+            <div><label class="field-label">Admin UID(s) — comma separated if multiple</label><input id="setup-adminUid" type="text" placeholder="e.g. abc123xyz, def456uvw" class="inp"></div>
+            <div class="flex gap-3 mt-5">
+                <button onclick="showSetupStep(2)" class="flex-1 btn-ghost py-3 rounded-xl">← Back</button>
+                <button onclick="setupStep3()" class="flex-1 btn-primary py-3 rounded-xl">Finish Setup ✓</button>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Dashboard -->
-    <div id="admin-dashboard" class="hidden h-screen flex">
-        <!-- Sidebar -->
-        <aside class="sidebar w-60 flex-shrink-0 flex flex-col">
-            <div class="p-5 flex items-center gap-3 border-b border-white/5">
-                <span class="text-xl">🪙</span>
-                <span class="text-lg font-bold text-neon">RN Coin Hunt</span>
+<!-- ===== LOGIN SECTION ===== -->
+<div id="login-section" class="section h-screen items-center justify-center p-4">
+    <div class="glass w-full max-w-sm p-7 text-center">
+        <span class="text-5xl block mb-2">🪙</span>
+        <h1 class="text-2xl font-bold text-neon mb-1">Admin Portal</h1>
+        <p class="text-gray-400 text-sm mb-6">RN Coin Hunt</p>
+        <div class="space-y-3 text-left">
+            <div><label class="field-label">Username</label><input id="login-username" type="text" class="inp" placeholder="Your admin username"></div>
+            <div><label class="field-label">Password</label><input id="login-password" type="password" class="inp" placeholder="Your password"></div>
+        </div>
+        <button onclick="handleLogin()" class="w-full btn-primary py-3 rounded-xl mt-5 text-[15px]">Login</button>
+        <p id="login-err" class="text-red-400 text-sm mt-3 hidden">Wrong username or password.</p>
+    </div>
+</div>
+
+<!-- ===== DASHBOARD SECTION ===== -->
+<div id="dashboard-section" class="section h-screen">
+    <!-- Sidebar -->
+    <aside class="sidebar w-56 flex-shrink-0 flex flex-col h-full">
+        <div class="p-5 flex items-center gap-2 border-b border-white/5">
+            <span class="text-xl">🪙</span>
+            <span class="font-bold text-neon text-[15px]">RN Coin Hunt</span>
+        </div>
+        <nav class="mt-3 flex-1 px-2 space-y-0.5">
+            <div class="nav-link active" onclick="navTo('pg-dashboard')">
+                <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                Dashboard
             </div>
-            <nav class="mt-4 flex-1 space-y-0.5 px-2">
-                <a href="#" class="nav-link flex items-center py-3 px-3 font-medium rounded-lg" data-page="dashboard-page">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-                    Dashboard
-                </a>
-                <a href="#" class="nav-link flex items-center py-3 px-3 font-medium rounded-lg" data-page="users-page">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                    Users
-                </a>
-                <a href="#" class="nav-link flex items-center py-3 px-3 font-medium rounded-lg relative" data-page="withdrawals-page">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                    Withdrawals
-                    <span id="pending-badge" class="hidden ml-auto bg-orange-500 text-xs font-bold px-2 py-0.5 rounded-full text-white">0</span>
-                </a>
-                <a href="#" class="nav-link flex items-center py-3 px-3 font-medium rounded-lg" data-page="notifications-page">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                    Notifications
-                </a>
-                <a href="#" class="nav-link flex items-center py-3 px-3 font-medium rounded-lg" data-page="settings-page">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    Settings
-                </a>
-            </nav>
-            <div class="p-4 border-t border-white/5">
-                <button id="admin-logout-btn" class="w-full flex items-center justify-center py-2.5 px-4 text-red-400 hover:bg-red-500/10 rounded-lg transition font-medium text-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                    Log Out
+            <div class="nav-link" onclick="navTo('pg-users')">
+                <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                Users
+            </div>
+            <div class="nav-link" onclick="navTo('pg-withdrawals')" id="nav-withdrawals">
+                <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                Withdrawals
+                <span id="pending-badge" class="hidden ml-auto bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">0</span>
+            </div>
+            <div class="nav-link" onclick="navTo('pg-broadcast')">
+                <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                Notifications
+            </div>
+            <div class="nav-link" onclick="navTo('pg-settings')">
+                <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Settings
+            </div>
+        </nav>
+        <div class="p-3 border-t border-white/5">
+            <button onclick="doLogout()" class="w-full flex items-center justify-center py-2.5 px-3 text-red-400 hover:bg-red-500/10 rounded-lg transition text-sm font-medium">
+                <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                Log Out
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 p-6 overflow-y-auto">
+
+        <!-- Dashboard Page -->
+        <div id="pg-dashboard" class="page active">
+            <h1 class="text-2xl font-bold mb-6">Overview</h1>
+            <div class="grid grid-cols-3 gap-5 mb-6">
+                <div class="glass p-5 flex justify-between items-center">
+                    <div><p class="text-gray-400 text-sm">Total Users</p><p id="stat-users" class="text-4xl font-bold mt-1">—</p></div>
+                    <div class="w-11 h-11 bg-blue-500/15 text-blue-400 rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>
+                </div>
+                <div class="glass p-5 flex justify-between items-center">
+                    <div><p class="text-gray-400 text-sm">Pending Requests</p><p id="stat-pending" class="text-4xl font-bold mt-1 text-orange-400">—</p></div>
+                    <div class="w-11 h-11 bg-orange-500/15 text-orange-400 rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                </div>
+                <div class="glass p-5 flex justify-between items-center">
+                    <div><p class="text-gray-400 text-sm">Total Approved</p><p id="stat-approved" class="text-4xl font-bold mt-1 text-green-400">—</p></div>
+                    <div class="w-11 h-11 bg-green-500/15 text-green-400 rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Page -->
+        <div id="pg-users" class="page">
+            <div class="flex items-center justify-between mb-5 gap-4 flex-wrap">
+                <h1 class="text-2xl font-bold">Users</h1>
+                <div class="flex items-center bg-black/30 border border-white/10 rounded-xl px-3 py-2 w-72">
+                    <svg class="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" id="user-search" placeholder="Search name or email..." class="bg-transparent border-none text-white w-full focus:outline-none text-sm">
+                </div>
+            </div>
+            <div class="glass overflow-hidden"><div class="overflow-x-auto">
+                <table><thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="users-tbody"></tbody></table>
+            </div></div>
+        </div>
+
+        <!-- Withdrawals Page -->
+        <div id="pg-withdrawals" class="page">
+            <h1 class="text-2xl font-bold mb-5">Withdrawal Requests</h1>
+            <div class="glass overflow-hidden"><div class="overflow-x-auto">
+                <table><thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Account Name</th><th>QR Code</th><th>Date</th><th>Actions</th></tr></thead>
+                <tbody id="withdrawals-tbody"></tbody></table>
+            </div></div>
+        </div>
+
+        <!-- Broadcast Page -->
+        <div id="pg-broadcast" class="page">
+            <h1 class="text-2xl font-bold mb-5">Send Notification</h1>
+            <div class="glass p-6 max-w-xl">
+                <div class="mb-4"><label class="field-label">Title</label><input type="text" id="bc-title" class="inp" placeholder="e.g. New Bonus Available!"></div>
+                <div class="mb-6"><label class="field-label">Message</label><textarea id="bc-msg" rows="4" class="inp resize-none" placeholder="Write your message..."></textarea></div>
+                <button onclick="sendBroadcast()" class="btn-primary px-7 py-3 rounded-xl flex items-center gap-2 font-bold">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                    Send to All Users
                 </button>
             </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="flex-1 p-7 overflow-y-auto">
-
-            <!-- Dashboard -->
-            <div id="dashboard-page" class="page">
-                <h1 class="text-2xl font-bold mb-7">Overview</h1>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-                    <div class="glass-card p-5 flex items-center justify-between">
-                        <div><p class="text-gray-400 text-sm">Total Users</p><p id="total-users" class="text-4xl font-bold mt-1">0</p></div>
-                        <div class="w-12 h-12 bg-blue-500/15 text-blue-400 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>
-                    </div>
-                    <div class="glass-card p-5 flex items-center justify-between">
-                        <div><p class="text-gray-400 text-sm">Pending Withdrawals</p><p id="pending-count" class="text-4xl font-bold mt-1 text-orange-400">0</p></div>
-                        <div class="w-12 h-12 bg-orange-500/15 text-orange-400 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-                    </div>
-                    <div class="glass-card p-5 flex items-center justify-between">
-                        <div><p class="text-gray-400 text-sm">Total Approved</p><p id="approved-count" class="text-4xl font-bold mt-1 text-green-400">0</p></div>
-                        <div class="w-12 h-12 bg-green-500/15 text-green-400 rounded-full flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Users -->
-            <div id="users-page" class="page">
-                <div class="flex items-center justify-between mb-6 gap-4 flex-wrap">
-                    <h1 class="text-2xl font-bold">User Management</h1>
-                    <div class="flex items-center bg-black/30 border border-white/10 rounded-xl px-4 py-2 w-72">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                        <input type="text" id="user-search" placeholder="Search name or email..." class="bg-transparent border-none text-white w-full focus:outline-none text-sm">
-                    </div>
-                </div>
-                <div class="glass-card overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table><thead class="bg-black/20"><tr><th>Name</th><th>Email</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody id="users-table"></tbody></table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Withdrawals -->
-            <div id="withdrawals-page" class="page">
-                <h1 class="text-2xl font-bold mb-6">Withdrawal Requests</h1>
-                <div class="glass-card overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table><thead class="bg-black/20"><tr><th>User</th><th>Amount</th><th>Method</th><th>Account Name</th><th>QR Code</th><th>Requested</th><th>Actions</th></tr></thead>
-                        <tbody id="withdrawals-table"></tbody></table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Notifications -->
-            <div id="notifications-page" class="page">
-                <h1 class="text-2xl font-bold mb-6">Broadcast Notification</h1>
-                <div class="glass-card p-7 max-w-2xl">
-                    <div class="mb-5">
-                        <label class="block text-sm font-medium mb-2 text-gray-300">Title</label>
-                        <input type="text" id="notif-title" placeholder="e.g. New Bonus Available!" class="input-glass">
-                    </div>
-                    <div class="mb-7">
-                        <label class="block text-sm font-medium mb-2 text-gray-300">Message</label>
-                        <textarea id="notif-message" rows="4" placeholder="Type your message here..." class="input-glass resize-none"></textarea>
-                    </div>
-                    <button id="send-notif-btn" class="btn-neon px-8 py-3 rounded-lg flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-                        Send to All Users
-                    </button>
-                </div>
-            </div>
-
-            <!-- Settings -->
-            <div id="settings-page" class="page">
-                <h1 class="text-2xl font-bold mb-6">App Configuration</h1>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="glass-card p-6">
-                        <h2 class="text-lg font-bold mb-5 text-yellow-400">Task Limits & Cooldowns</h2>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Daily Ad Limit</label><input type="number" id="s-daily-ad-limit" class="input-glass" placeholder="10"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Ad Cooldown (sec)</label><input type="number" id="s-ad-cooldown" class="input-glass" placeholder="60"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Daily Math Limit</label><input type="number" id="s-daily-math-limit" class="input-glass" placeholder="10"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Math Cooldown (sec)</label><input type="number" id="s-math-cooldown" class="input-glass" placeholder="60"></div>
-                        </div>
-                    </div>
-                    <div class="glass-card p-6">
-                        <h2 class="text-lg font-bold mb-5 text-yellow-400">Coin Rewards</h2>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Check-in Reward</label><input type="number" id="s-checkin-reward" class="input-glass" placeholder="50"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Referral Bonus</label><input type="number" id="s-referral-bonus" class="input-glass" placeholder="100"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Ad Reward</label><input type="number" id="s-ad-reward" class="input-glass" placeholder="50"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Math Quiz Reward</label><input type="number" id="s-math-reward" class="input-glass" placeholder="10"></div>
-                        </div>
-                    </div>
-                    <div class="glass-card p-6 lg:col-span-2">
-                        <h2 class="text-lg font-bold mb-5 text-yellow-400">Withdrawal Settings</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Min Withdrawal (Coins)</label><input type="number" id="s-min-withdrawal" class="input-glass" placeholder="5000"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Exchange: Coins</label><input type="number" id="s-coin-value-coins" class="input-glass" placeholder="1000"></div>
-                            <div><label class="block text-xs text-gray-400 mb-1.5">Exchange: ₹</label><input type="number" id="s-coin-value-inr" class="input-glass" placeholder="10"></div>
-                            <div class="md:col-span-3"><label class="block text-xs text-gray-400 mb-1.5">Payment Methods (comma-separated)</label><input type="text" id="s-payment-methods" class="input-glass" placeholder="UPI, Paytm, Crypto"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-6 flex justify-end">
-                    <button id="save-settings-btn" class="btn-neon px-10 py-3.5 rounded-xl flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-                        Save All Changes
-                    </button>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modals -->
-    <div id="custom-alert" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-        <div class="glass-card p-6 w-full max-w-sm text-center"><p id="alert-message" class="mb-5 text-white font-medium"></p><button id="alert-ok-btn" class="btn-neon px-8 py-2.5 rounded-lg w-full">OK</button></div>
-    </div>
-    <div id="custom-confirm" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-        <div class="glass-card p-6 w-full max-w-sm text-center"><p id="confirm-message" class="mb-5 text-white font-medium"></p>
-        <div class="flex gap-3"><button id="confirm-cancel" class="flex-1 py-2.5 rounded-lg bg-white/5 text-white">Cancel</button><button id="confirm-ok" class="flex-1 btn-neon py-2.5 rounded-lg">Confirm</button></div></div>
-    </div>
-    <div id="balance-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-        <div class="glass-card p-6 w-full max-w-sm text-center">
-            <h3 class="text-lg font-bold mb-1">Edit User Coins</h3>
-            <p id="balance-modal-user" class="text-yellow-400 text-sm mb-5"></p>
-            <input type="number" id="new-balance-input" class="input-glass text-center text-lg font-bold mb-5">
-            <div class="flex gap-3"><button onclick="closeBalanceModal()" class="flex-1 py-2.5 rounded-lg bg-white/5 text-white">Cancel</button><button id="save-balance-btn" class="flex-1 btn-neon py-2.5 rounded-lg">Save</button></div>
         </div>
-    </div>
-    <div id="reject-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-        <div class="glass-card p-6 w-full max-w-sm">
-            <h3 class="text-lg font-bold mb-4">Reject Reason</h3>
-            <textarea id="reject-reason" rows="3" placeholder="Enter reason for rejection..." class="input-glass resize-none mb-5"></textarea>
-            <div class="flex gap-3"><button onclick="closeRejectModal()" class="flex-1 py-2.5 rounded-lg bg-white/5 text-white">Cancel</button><button id="confirm-reject-btn" class="flex-1 btn-danger py-2.5 rounded-lg font-bold">Reject</button></div>
+
+        <!-- Settings Page -->
+        <div id="pg-settings" class="page">
+            <h1 class="text-2xl font-bold mb-5">Settings</h1>
+
+            <!-- Tabs -->
+            <div class="flex gap-1 bg-black/30 border border-white/10 rounded-xl p-1 mb-6 w-fit">
+                <button class="tab-btn active" onclick="settingsTab('tab-panel')">Panel Login</button>
+                <button class="tab-btn" onclick="settingsTab('tab-firebase')">Firebase Config</button>
+                <button class="tab-btn" onclick="settingsTab('tab-app')">App Settings</button>
+            </div>
+
+            <!-- Tab: Panel Login -->
+            <div id="tab-panel" class="settings-tab">
+                <div class="glass p-6 max-w-md">
+                    <h2 class="font-bold text-lg mb-4">Change Login Credentials</h2>
+                    <div class="space-y-3">
+                        <div><label class="field-label">New Username</label><input id="new-username" type="text" class="inp" placeholder="New username"></div>
+                        <div><label class="field-label">New Password</label><input id="new-password" type="password" class="inp" placeholder="New password"></div>
+                        <div><label class="field-label">Confirm Password</label><input id="new-password2" type="password" class="inp" placeholder="Confirm password"></div>
+                    </div>
+                    <button onclick="updatePanelCreds()" class="btn-primary px-6 py-2.5 rounded-xl mt-4">Save Credentials</button>
+                </div>
+            </div>
+
+            <!-- Tab: Firebase Config -->
+            <div id="tab-firebase" class="settings-tab hidden">
+                <div class="glass p-6 max-w-xl">
+                    <h2 class="font-bold text-lg mb-2">Firebase Configuration</h2>
+                    <div class="info-box mb-4">
+                        📌 <b>Where to find these:</b> Firebase Console → Your Project → Project Settings → Your Apps → Web App → firebaseConfig
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="col-span-2"><label class="field-label">API Key</label><input id="s-apiKey" type="text" class="inp" placeholder="AIzaSy..."></div>
+                        <div><label class="field-label">Auth Domain</label><input id="s-authDomain" type="text" class="inp" placeholder="yourapp.firebaseapp.com"></div>
+                        <div><label class="field-label">Project ID</label><input id="s-projectId" type="text" class="inp" placeholder="yourapp-id"></div>
+                        <div><label class="field-label">Storage Bucket</label><input id="s-storageBucket" type="text" class="inp" placeholder="yourapp.appspot.com"></div>
+                        <div><label class="field-label">Messaging Sender ID</label><input id="s-messagingSenderId" type="text" class="inp" placeholder="123456789"></div>
+                        <div class="col-span-2"><label class="field-label">App ID</label><input id="s-appId" type="text" class="inp" placeholder="1:123:web:abc..."></div>
+                        <div class="col-span-2"><label class="field-label">Admin UID(s) — comma separated</label><input id="s-adminUids" type="text" class="inp" placeholder="uid1, uid2"></div>
+                    </div>
+                    <button onclick="saveFirebaseConfig()" class="btn-primary px-6 py-2.5 rounded-xl mt-4">Save Firebase Config</button>
+                    <p class="text-xs text-yellow-400 mt-3">⚠️ After saving, reload the page to apply changes.</p>
+                </div>
+            </div>
+
+            <!-- Tab: App Settings (Firebase config/main) -->
+            <div id="tab-app" class="settings-tab hidden">
+                <div class="grid grid-cols-2 gap-5 max-w-3xl">
+                    <div class="glass p-5">
+                        <h3 class="font-bold text-yellow-400 mb-4">Task Limits & Cooldowns</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="field-label">Daily Ad Limit</label><input type="number" id="s-daily-ad-limit" class="inp" placeholder="10"></div>
+                            <div><label class="field-label">Ad Cooldown (sec)</label><input type="number" id="s-ad-cooldown" class="inp" placeholder="60"></div>
+                            <div><label class="field-label">Daily Math Limit</label><input type="number" id="s-daily-math-limit" class="inp" placeholder="10"></div>
+                            <div><label class="field-label">Math Cooldown (sec)</label><input type="number" id="s-math-cooldown" class="inp" placeholder="60"></div>
+                        </div>
+                    </div>
+                    <div class="glass p-5">
+                        <h3 class="font-bold text-yellow-400 mb-4">Coin Rewards</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="field-label">Check-in Coins</label><input type="number" id="s-checkin-reward" class="inp" placeholder="50"></div>
+                            <div><label class="field-label">Referral Bonus</label><input type="number" id="s-referral-bonus" class="inp" placeholder="100"></div>
+                            <div><label class="field-label">Ad Reward</label><input type="number" id="s-ad-reward" class="inp" placeholder="50"></div>
+                            <div><label class="field-label">Math Quiz Reward</label><input type="number" id="s-math-reward" class="inp" placeholder="10"></div>
+                        </div>
+                    </div>
+                    <div class="glass p-5 col-span-2">
+                        <h3 class="font-bold text-yellow-400 mb-4">Withdrawal Settings</h3>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div><label class="field-label">Min Withdrawal (Coins)</label><input type="number" id="s-min-withdrawal" class="inp" placeholder="5000"></div>
+                            <div><label class="field-label">Exchange: Coins</label><input type="number" id="s-coin-value-coins" class="inp" placeholder="1000"></div>
+                            <div><label class="field-label">Exchange: ₹</label><input type="number" id="s-coin-value-inr" class="inp" placeholder="10"></div>
+                            <div class="col-span-3"><label class="field-label">Payment Methods (comma separated)</label><input type="text" id="s-payment-methods" class="inp" placeholder="UPI, Paytm, Crypto"></div>
+                        </div>
+                        <button onclick="saveAppSettings()" class="btn-primary px-6 py-2.5 rounded-xl mt-4">Save App Settings</button>
+                    </div>
+                </div>
+            </div>
         </div>
+    </main>
+</div>
+
+<!-- Modals -->
+<div id="modal-alert" class="modal-overlay">
+    <div class="glass p-6 w-full max-w-sm text-center"><p id="modal-alert-msg" class="mb-5 text-white font-medium leading-relaxed"></p><button onclick="closeAlert()" class="btn-primary px-7 py-2.5 rounded-xl w-full">OK</button></div>
+</div>
+<div id="modal-confirm" class="modal-overlay">
+    <div class="glass p-6 w-full max-w-sm text-center"><p id="modal-confirm-msg" class="mb-5 text-white font-medium"></p>
+    <div class="flex gap-3"><button onclick="closeConfirm()" class="flex-1 btn-ghost py-2.5 rounded-xl">Cancel</button><button id="modal-confirm-ok" class="flex-1 btn-primary py-2.5 rounded-xl">Confirm</button></div></div>
+</div>
+<div id="modal-reject" class="modal-overlay">
+    <div class="glass p-6 w-full max-w-sm">
+        <h3 class="font-bold text-lg mb-4">Rejection Reason</h3>
+        <textarea id="reject-reason" rows="3" class="inp resize-none mb-5" placeholder="e.g. Invalid QR code, incorrect details..."></textarea>
+        <div class="flex gap-3"><button onclick="closeRejectModal()" class="flex-1 btn-ghost py-2.5 rounded-xl">Cancel</button><button id="reject-confirm-btn" class="flex-1 btn-danger py-2.5 rounded-xl font-bold">Reject Request</button></div>
     </div>
-    <!-- QR Lightbox -->
-    <div id="qr-lightbox" onclick="this.classList.remove('open')">
-        <img id="qr-lightbox-img" src="" alt="QR Code">
+</div>
+<div id="modal-balance" class="modal-overlay">
+    <div class="glass p-6 w-full max-w-sm text-center">
+        <h3 class="font-bold text-lg mb-1">Edit User Coins</h3>
+        <p id="balance-modal-name" class="text-yellow-400 text-sm mb-4"></p>
+        <input type="number" id="new-balance-val" class="inp text-center text-xl font-bold mb-5">
+        <div class="flex gap-3"><button onclick="closeBalanceModal()" class="flex-1 btn-ghost py-2.5 rounded-xl">Cancel</button><button id="save-balance-btn" class="flex-1 btn-primary py-2.5 rounded-xl">Save</button></div>
     </div>
+</div>
+<div id="qr-lb" onclick="this.classList.remove('open')"><img id="qr-lb-img" src="" alt="QR"></div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, query, where, onSnapshot, addDoc, serverTimestamp, increment, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, query, where, onSnapshot, addDoc, serverTimestamp, increment, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        // ============================================================
-        // FIREBASE CONFIG — same as user app
-        // ============================================================
-        const firebaseConfig = {
-            apiKey: "YOUR_FIREBASE_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+    const LS_KEY = 'rncch_admin_cfg';
 
-        // ============================================================
-        // ADMIN UIDs — Add your Firebase UID here
-        // ============================================================
-        const ADMIN_UIDS = ["YOUR_FIREBASE_UID_HERE"];
+    // ---- Config helpers ----
+    function getConfig() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || null; } catch { return null; } }
+    function saveConfig(cfg) { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+    let db = null, auth = null;
+    let currentRejectId = null, currentRejectUserId = null, currentRejectAmount = 0;
+    let currentEditUserId = null;
 
-        let currentRejectId = null;
-        let currentRejectUserId = null;
-        let currentRejectAmount = 0;
-        let currentEditUserId = null;
+    function tryInitFirebase() {
+        const cfg = getConfig();
+        if (!cfg || !cfg.firebase || !cfg.firebase.apiKey) return false;
+        try {
+            const fbApp = initializeApp(cfg.firebase);
+            auth = getAuth(fbApp);
+            db = getFirestore(fbApp);
+            return true;
+        } catch (e) { console.error('Firebase init error:', e); return false; }
+    }
 
-        window.onload = () => {
-            setupNavigation();
-            document.getElementById('admin-login-btn').addEventListener('click', handleLogin);
-            document.getElementById('admin-logout-btn').addEventListener('click', () => signOut(auth));
-            document.getElementById('send-notif-btn').addEventListener('click', sendNotification);
-            document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
-            document.getElementById('alert-ok-btn').addEventListener('click', () => document.getElementById('custom-alert').classList.add('hidden'));
-            document.getElementById('save-balance-btn').addEventListener('click', saveBalance);
-            document.getElementById('user-search').addEventListener('input', filterUsers);
+    // ---- Startup ----
+    window.addEventListener('DOMContentLoaded', () => {
+        const cfg = getConfig();
 
-            onAuthStateChanged(auth, (user) => {
-                if (user && ADMIN_UIDS.includes(user.uid)) {
-                    document.getElementById('admin-login-view').style.display = 'none';
-                    document.getElementById('admin-dashboard').style.display = 'flex';
-                    navigateTo('dashboard-page');
-                    loadDashboard();
-                    loadUsers();
-                    loadWithdrawals();
-                    loadSettings();
-                } else {
-                    document.getElementById('admin-login-view').style.display = 'flex';
-                    document.getElementById('admin-dashboard').style.display = 'none';
-                }
-            });
-        };
-
-        async function handleLogin() {
-            const email = document.getElementById('admin-email').value.trim();
-            const pw = document.getElementById('admin-password').value;
-            if (!email || !pw) return showAlert('Enter email and password.');
-            try {
-                const cred = await signInWithEmailAndPassword(auth, email, pw);
-                if (!ADMIN_UIDS.includes(cred.user.uid)) { await signOut(auth); showAlert('Not authorized.'); }
-            } catch (e) { showAlert(e.message); }
+        if (!cfg || !cfg.panelUsername) {
+            showSection('setup-section');
+            return;
         }
 
-        function loadDashboard() {
-            onSnapshot(collection(db, 'users'), snap => {
-                document.getElementById('total-users').textContent = snap.size;
-            });
-            onSnapshot(query(collection(db, 'withdrawals'), where('status', '==', 'pending')), snap => {
-                const n = snap.size;
-                document.getElementById('pending-count').textContent = n;
-                const badge = document.getElementById('pending-badge');
-                badge.textContent = n; badge.classList.toggle('hidden', n === 0);
-            });
-            onSnapshot(query(collection(db, 'withdrawals'), where('status', '==', 'approved')), snap => {
-                document.getElementById('approved-count').textContent = snap.size;
-            });
+        // Has config — try init Firebase
+        if (!tryInitFirebase()) {
+            showSection('setup-section');
+            return;
         }
 
-        function loadUsers() {
-            onSnapshot(collection(db, 'users'), snap => {
-                const tbody = document.getElementById('users-table');
+        // Check if already "logged in" via session
+        if (sessionStorage.getItem('rncch_logged_in') === '1') {
+            showSection('dashboard-section');
+            loadDashboard();
+        } else {
+            showSection('login-section');
+        }
+
+        // Pre-fill settings fields
+        prefillSettings();
+    });
+
+    // ---- Setup flow ----
+    window.showSetupStep = function(n) {
+        document.querySelectorAll('.setup-step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step-' + n).classList.add('active');
+    };
+
+    window.setupStep1 = function() {
+        const u = document.getElementById('setup-username').value.trim();
+        const p = document.getElementById('setup-password').value;
+        const p2 = document.getElementById('setup-password2').value;
+        if (!u || !p) return showAlert('Please fill in username and password.');
+        if (p !== p2) return showAlert('Passwords do not match.');
+        if (p.length < 6) return showAlert('Password must be at least 6 characters.');
+        const cfg = getConfig() || {};
+        cfg.panelUsername = u;
+        cfg.panelPassword = btoa(p);
+        saveConfig(cfg);
+        showSetupStep(2);
+    };
+
+    window.setupStep2 = function() {
+        const apiKey = document.getElementById('fb-apiKey').value.trim();
+        const authDomain = document.getElementById('fb-authDomain').value.trim();
+        const projectId = document.getElementById('fb-projectId').value.trim();
+        const storageBucket = document.getElementById('fb-storageBucket').value.trim();
+        const messagingSenderId = document.getElementById('fb-messagingSenderId').value.trim();
+        const appId = document.getElementById('fb-appId').value.trim();
+        if (!apiKey || !projectId || !appId) return showAlert('API Key, Project ID, and App ID are required.');
+        const cfg = getConfig() || {};
+        cfg.firebase = { apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId };
+        saveConfig(cfg);
+        showSetupStep(3);
+    };
+
+    window.setupStep3 = function() {
+        const uidStr = document.getElementById('setup-adminUid').value.trim();
+        if (!uidStr) return showAlert('Please enter your Admin UID.');
+        const cfg = getConfig() || {};
+        cfg.adminUids = uidStr.split(',').map(s => s.trim()).filter(Boolean);
+        saveConfig(cfg);
+        showAlert('✅ Setup complete! You can now log in.');
+        setTimeout(() => {
+            if (!tryInitFirebase()) return showAlert('Firebase config error. Please check your values.');
+            prefillSettings();
+            showSection('login-section');
+        }, 800);
+    };
+
+    // ---- Login ----
+    window.handleLogin = function() {
+        const u = document.getElementById('login-username').value.trim();
+        const p = document.getElementById('login-password').value;
+        const cfg = getConfig();
+        if (!cfg) return;
+        const errEl = document.getElementById('login-err');
+        if (u === cfg.panelUsername && btoa(p) === cfg.panelPassword) {
+            errEl.classList.add('hidden');
+            sessionStorage.setItem('rncch_logged_in', '1');
+            if (!tryInitFirebase()) return showAlert('Firebase not initialized. Check Settings.');
+            showSection('dashboard-section');
+            loadDashboard();
+        } else {
+            errEl.classList.remove('hidden');
+        }
+    };
+
+    window.doLogout = function() {
+        sessionStorage.removeItem('rncch_logged_in');
+        showSection('login-section');
+    };
+
+    // Also allow Enter key
+    ['login-username','login-password'].forEach(id => {
+        document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+    });
+
+    // ---- Navigation ----
+    window.navTo = function(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId)?.classList.add('active');
+        document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+        const idx = ['pg-dashboard','pg-users','pg-withdrawals','pg-broadcast','pg-settings'];
+        const navEls = document.querySelectorAll('.nav-link');
+        const i = idx.indexOf(pageId);
+        if (i >= 0 && navEls[i]) navEls[i].classList.add('active');
+        if (pageId === 'pg-settings') prefillSettings();
+    };
+
+    window.settingsTab = function(tabId) {
+        document.querySelectorAll('.settings-tab').forEach(t => t.classList.add('hidden'));
+        document.getElementById(tabId)?.classList.remove('hidden');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+    };
+
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.getElementById(id)?.classList.add('active');
+    }
+
+    // ---- Dashboard ----
+    function loadDashboard() {
+        if (!db) return;
+        onSnapshot(collection(db, 'users'), snap => {
+            document.getElementById('stat-users').textContent = snap.size;
+        });
+        onSnapshot(query(collection(db, 'withdrawals'), where('status', '==', 'pending')), snap => {
+            const n = snap.size;
+            document.getElementById('stat-pending').textContent = n;
+            const badge = document.getElementById('pending-badge');
+            badge.textContent = n;
+            badge.classList.toggle('hidden', n === 0);
+        });
+        onSnapshot(query(collection(db, 'withdrawals'), where('status', '==', 'approved')), snap => {
+            document.getElementById('stat-approved').textContent = snap.size;
+        });
+        loadUsers();
+        loadWithdrawals();
+    }
+
+    function loadUsers() {
+        if (!db) return;
+        onSnapshot(collection(db, 'users'), snap => {
+            const tbody = document.getElementById('users-tbody');
+            tbody.innerHTML = '';
+            snap.forEach(d => {
+                const u = d.data();
+                const blocked = u.isBlocked || false;
+                tbody.innerHTML += `<tr>
+                    <td class="font-medium u-name">${u.name||'N/A'}</td>
+                    <td class="text-gray-400 u-email text-sm">${u.email||''}</td>
+                    <td class="font-bold text-yellow-400">${u.balance||0}</td>
+                    <td>${blocked ? '<span class="badge-red">Blocked</span>' : '<span class="badge-green">Active</span>'}</td>
+                    <td class="flex items-center gap-2 flex-wrap">
+                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-500/10 text-violet-400 border border-violet-500/20 cursor-pointer hover:bg-violet-500/20 transition" onclick="openEditBalance('${d.id}','${(u.name||'').replace(/'/g,"\\'")}',${u.balance||0})">Edit Coins</button>
+                        <button class="px-3 py-1.5 rounded-lg text-xs font-semibold ${blocked?'btn-success':'btn-danger'}" onclick="toggleBlock('${d.id}',${blocked})">${blocked?'Unblock':'Block'}</button>
+                    </td>
+                </tr>`;
+            });
+        });
+        document.getElementById('user-search').addEventListener('input', function() {
+            const t = this.value.toLowerCase();
+            document.querySelectorAll('#users-tbody tr').forEach(r => {
+                const name = r.querySelector('.u-name')?.textContent.toLowerCase()||'';
+                const email = r.querySelector('.u-email')?.textContent.toLowerCase()||'';
+                r.style.display = (name.includes(t)||email.includes(t)) ? '' : 'none';
+            });
+        });
+    }
+
+    function loadWithdrawals() {
+        if (!db) return;
+        try {
+            onSnapshot(query(collection(db, 'withdrawals'), where('status','==','pending'), orderBy('requestedAt','desc')), snap => {
+                const tbody = document.getElementById('withdrawals-tbody');
                 tbody.innerHTML = '';
-                snap.forEach(d => {
-                    const u = d.data();
-                    const blocked = u.isBlocked || false;
-                    tbody.innerHTML += `<tr>
-                        <td class="font-medium user-name">${u.name || 'N/A'}</td>
-                        <td class="text-gray-400 user-email">${u.email || ''}</td>
-                        <td class="font-bold text-yellow-400">${u.balance || 0}</td>
-                        <td>${blocked ? '<span class="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-xs font-bold">Blocked</span>' : '<span class="px-2 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-full text-xs font-bold">Active</span>'}</td>
-                        <td class="flex items-center gap-2 flex-wrap">
-                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 transition" onclick="openEditBalance('${d.id}','${(u.name||'').replace(/'/g,"\\'")}',${u.balance||0})">Edit Coins</button>
-                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold ${blocked ? 'btn-success' : 'btn-danger'}" onclick="toggleBlock('${d.id}',${blocked})">${blocked ? 'Unblock' : 'Block'}</button>
-                        </td>
-                    </tr>`;
-                });
-            });
-        }
-
-        function filterUsers() {
-            const term = document.getElementById('user-search').value.toLowerCase();
-            document.querySelectorAll('#users-table tr').forEach(row => {
-                const name = row.querySelector('.user-name')?.textContent.toLowerCase() || '';
-                const email = row.querySelector('.user-email')?.textContent.toLowerCase() || '';
-                row.style.display = name.includes(term) || email.includes(term) ? '' : 'none';
-            });
-        }
-
-        function loadWithdrawals() {
-            onSnapshot(query(collection(db, 'withdrawals'), where('status', '==', 'pending'), orderBy('requestedAt', 'desc')), snap => {
-                const tbody = document.getElementById('withdrawals-table');
-                tbody.innerHTML = '';
-                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500 py-8">No pending requests</td></tr>'; return; }
+                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500 py-10">No pending requests</td></tr>'; return; }
                 snap.forEach(d => {
                     const r = d.data();
                     const date = r.requestedAt?.toDate ? r.requestedAt.toDate().toLocaleString() : 'N/A';
-                    const qrHtml = r.qrCodeUrl ? `<img class="qr-thumb" src="${r.qrCodeUrl}" alt="QR" onclick="openQR('${r.qrCodeUrl}')">` : '<span class="text-gray-500 text-xs">N/A</span>';
+                    const qrHtml = r.qrCodeUrl ? `<img class="qr-img" src="${r.qrCodeUrl}" onclick="openQR('${r.qrCodeUrl}')">` : '<span class="text-gray-500 text-xs">N/A</span>';
                     tbody.innerHTML += `<tr>
-                        <td><p class="font-medium">${r.userName || 'N/A'}</p><p class="text-xs text-gray-500">${r.userEmail || ''}</p></td>
+                        <td><p class="font-medium">${r.userName||'N/A'}</p><p class="text-xs text-gray-500">${r.userEmail||''}</p></td>
                         <td class="font-bold text-yellow-400">${r.amount}</td>
-                        <td class="uppercase text-sm text-gray-300">${r.method || ''}</td>
-                        <td class="text-sm">${r.accountName || 'N/A'}</td>
+                        <td class="text-sm text-gray-300">${r.method||''}</td>
+                        <td class="text-sm">${r.accountName||'N/A'}</td>
                         <td>${qrHtml}</td>
                         <td class="text-xs text-gray-400">${date}</td>
-                        <td class="flex items-center gap-2 flex-wrap">
-                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold btn-success" onclick="approveWithdrawal('${d.id}','${r.userId}')">Approve</button>
-                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold btn-danger" onclick="openRejectModal('${d.id}','${r.userId}',${r.amount})">Reject</button>
+                        <td class="flex items-center gap-2">
+                            <button class="btn-success px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="approveW('${d.id}','${r.userId}')">Approve</button>
+                            <button class="btn-danger px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="openRejectModal('${d.id}','${r.userId}',${r.amount})">Reject</button>
                         </td>
                     </tr>`;
                 });
             });
-        }
+        } catch(e) { console.error(e); }
+    }
 
-        async function loadSettings() {
-            const snap = await getDoc(doc(db, 'config', 'main'));
-            if (snap.exists()) {
-                const c = snap.data();
-                document.getElementById('s-daily-ad-limit').value = c.dailyAdLimit || 10;
-                document.getElementById('s-ad-cooldown').value = c.adCooldown || 60;
-                document.getElementById('s-daily-math-limit').value = c.dailyMathLimit || 10;
-                document.getElementById('s-math-cooldown').value = c.mathCooldown || 60;
-                document.getElementById('s-checkin-reward').value = c.checkinReward || 50;
-                document.getElementById('s-referral-bonus').value = c.referralBonus || 100;
-                document.getElementById('s-ad-reward').value = c.adReward || 50;
-                document.getElementById('s-math-reward').value = c.mathReward || 10;
-                document.getElementById('s-min-withdrawal').value = c.minWithdrawal || 5000;
-                document.getElementById('s-coin-value-coins').value = c.coinValueCoins || 1000;
-                document.getElementById('s-coin-value-inr').value = c.coinValueInr || 10;
-                document.getElementById('s-payment-methods').value = (c.paymentMethods || []).join(', ');
-            }
-        }
+    // ---- Actions ----
+    window.openQR = url => { document.getElementById('qr-lb-img').src = url; document.getElementById('qr-lb').classList.add('open'); };
 
-        async function saveSettings() {
-            const data = {
-                dailyAdLimit: +document.getElementById('s-daily-ad-limit').value || 10,
-                adCooldown: +document.getElementById('s-ad-cooldown').value || 60,
-                dailyMathLimit: +document.getElementById('s-daily-math-limit').value || 10,
-                mathCooldown: +document.getElementById('s-math-cooldown').value || 60,
-                checkinReward: +document.getElementById('s-checkin-reward').value || 50,
-                referralBonus: +document.getElementById('s-referral-bonus').value || 100,
-                adReward: +document.getElementById('s-ad-reward').value || 50,
-                mathReward: +document.getElementById('s-math-reward').value || 10,
-                minWithdrawal: +document.getElementById('s-min-withdrawal').value || 5000,
-                coinValueCoins: +document.getElementById('s-coin-value-coins').value || 1000,
-                coinValueInr: +document.getElementById('s-coin-value-inr').value || 10,
-                paymentMethods: document.getElementById('s-payment-methods').value.split(',').map(s => s.trim()).filter(Boolean)
-            };
-            try { await setDoc(doc(db, 'config', 'main'), data, { merge: true }); showAlert('Settings saved successfully!'); }
-            catch (e) { showAlert('Error: ' + e.message); }
-        }
+    window.openEditBalance = (uid, name, bal) => {
+        currentEditUserId = uid;
+        document.getElementById('balance-modal-name').textContent = 'Editing: ' + name;
+        document.getElementById('new-balance-val').value = bal;
+        document.getElementById('modal-balance').classList.add('open');
+        document.getElementById('save-balance-btn').onclick = async () => {
+            const v = parseInt(document.getElementById('new-balance-val').value);
+            if (isNaN(v)) return showAlert('Enter a valid number.');
+            try { await updateDoc(doc(db,'users',currentEditUserId),{balance:v}); closeBalanceModal(); showAlert('Balance updated!'); }
+            catch(e) { showAlert(e.message); }
+        };
+    };
+    window.closeBalanceModal = () => document.getElementById('modal-balance').classList.remove('open');
 
-        async function sendNotification() {
-            const title = document.getElementById('notif-title').value.trim();
-            const message = document.getElementById('notif-message').value.trim();
-            if (!title || !message) return showAlert('Title and message required.');
+    window.toggleBlock = (uid, isBlocked) => {
+        showConfirm(`${isBlocked?'Unblock':'Block'} this user?`, async () => {
+            try { await updateDoc(doc(db,'users',uid),{isBlocked:!isBlocked}); showAlert('Done!'); }
+            catch(e) { showAlert(e.message); }
+        });
+    };
+
+    window.approveW = (reqId, userId) => {
+        showConfirm('Approve this withdrawal?', async () => {
             try {
-                await addDoc(collection(db, 'notifications'), { title, message, createdAt: serverTimestamp() });
-                showAlert('Notification sent to all users!');
-                document.getElementById('notif-title').value = '';
-                document.getElementById('notif-message').value = '';
-            } catch (e) { showAlert(e.message); }
-        }
+                await updateDoc(doc(db,'withdrawals',reqId),{status:'approved',processedAt:serverTimestamp()});
+                await addDoc(collection(db,'user_notifications'),{
+                    userId, type:'approved',
+                    title:'✅ Withdrawal Approved!',
+                    message:'Your withdrawal has been approved. Payment is on the way!',
+                    createdAt:serverTimestamp()
+                });
+                showAlert('Approved! User notified.');
+            } catch(e) { showAlert(e.message); }
+        });
+    };
 
-        window.openEditBalance = (userId, name, bal) => {
-            currentEditUserId = userId;
-            document.getElementById('balance-modal-user').textContent = `Editing: ${name}`;
-            document.getElementById('new-balance-input').value = bal;
-            document.getElementById('balance-modal').classList.remove('hidden');
+    window.openRejectModal = (reqId, userId, amount) => {
+        currentRejectId = reqId; currentRejectUserId = userId; currentRejectAmount = amount;
+        document.getElementById('reject-reason').value = '';
+        document.getElementById('modal-reject').classList.add('open');
+        document.getElementById('reject-confirm-btn').onclick = async () => {
+            const reason = document.getElementById('reject-reason').value.trim();
+            if (!reason) return showAlert('Please enter a reason.');
+            closeRejectModal();
+            try {
+                await updateDoc(doc(db,'withdrawals',currentRejectId),{status:'rejected',reason,processedAt:serverTimestamp()});
+                await updateDoc(doc(db,'users',currentRejectUserId),{balance:increment(currentRejectAmount)});
+                await addDoc(collection(db,'user_notifications'),{
+                    userId:currentRejectUserId, type:'rejected',
+                    title:'❌ Withdrawal Rejected',
+                    message:`Your withdrawal was rejected. Reason: ${reason}. Coins refunded.`,
+                    createdAt:serverTimestamp()
+                });
+                showAlert('Rejected. Coins refunded to user.');
+            } catch(e) { showAlert(e.message); }
         };
-        window.closeBalanceModal = () => { document.getElementById('balance-modal').classList.add('hidden'); currentEditUserId = null; };
-        async function saveBalance() {
-            const val = parseInt(document.getElementById('new-balance-input').value);
-            if (isNaN(val)) return showAlert('Enter a valid number.');
-            try { await updateDoc(doc(db, 'users', currentEditUserId), { balance: val }); showAlert('Balance updated!'); closeBalanceModal(); }
-            catch (e) { showAlert(e.message); }
+    };
+    window.closeRejectModal = () => document.getElementById('modal-reject').classList.remove('open');
+
+    window.sendBroadcast = async () => {
+        const title = document.getElementById('bc-title').value.trim();
+        const msg = document.getElementById('bc-msg').value.trim();
+        if (!title||!msg) return showAlert('Both title and message are required.');
+        if (!db) return showAlert('Firebase not connected.');
+        try {
+            await addDoc(collection(db,'notifications'),{title,message:msg,createdAt:serverTimestamp()});
+            showAlert('Notification sent to all users!');
+            document.getElementById('bc-title').value = '';
+            document.getElementById('bc-msg').value = '';
+        } catch(e) { showAlert(e.message); }
+    };
+
+    // ---- Settings ----
+    function prefillSettings() {
+        const cfg = getConfig();
+        if (!cfg) return;
+        if (cfg.panelUsername) document.getElementById('new-username').value = cfg.panelUsername;
+        if (cfg.firebase) {
+            document.getElementById('s-apiKey').value = cfg.firebase.apiKey||'';
+            document.getElementById('s-authDomain').value = cfg.firebase.authDomain||'';
+            document.getElementById('s-projectId').value = cfg.firebase.projectId||'';
+            document.getElementById('s-storageBucket').value = cfg.firebase.storageBucket||'';
+            document.getElementById('s-messagingSenderId').value = cfg.firebase.messagingSenderId||'';
+            document.getElementById('s-appId').value = cfg.firebase.appId||'';
         }
-
-        window.toggleBlock = (userId, isBlocked) => {
-            showConfirm(`${isBlocked ? 'Unblock' : 'Block'} this user?`, async () => {
-                try { await updateDoc(doc(db, 'users', userId), { isBlocked: !isBlocked }); showAlert('Done!'); }
-                catch (e) { showAlert(e.message); }
-            });
-        };
-
-        window.approveWithdrawal = (reqId, userId) => {
-            showConfirm('Approve this withdrawal request?', async () => {
-                try {
-                    await updateDoc(doc(db, 'withdrawals', reqId), { status: 'approved', processedAt: serverTimestamp() });
-                    await addDoc(collection(db, 'user_notifications'), {
-                        userId, type: 'approved', title: '✅ Withdrawal Approved!',
-                        message: 'Your withdrawal request has been approved. Payment is on the way!',
-                        createdAt: serverTimestamp()
-                    });
-                    showAlert('Approved! User has been notified.');
-                } catch (e) { showAlert(e.message); }
-            });
-        };
-
-        window.openRejectModal = (reqId, userId, amount) => {
-            currentRejectId = reqId; currentRejectUserId = userId; currentRejectAmount = amount;
-            document.getElementById('reject-reason').value = '';
-            document.getElementById('reject-modal').classList.remove('hidden');
-            document.getElementById('confirm-reject-btn').onclick = async () => {
-                const reason = document.getElementById('reject-reason').value.trim();
-                if (!reason) return showAlert('Reason is required.');
-                closeRejectModal();
-                try {
-                    await updateDoc(doc(db, 'withdrawals', currentRejectId), { status: 'rejected', reason, processedAt: serverTimestamp() });
-                    await updateDoc(doc(db, 'users', currentRejectUserId), { balance: increment(currentRejectAmount) });
-                    await addDoc(collection(db, 'user_notifications'), {
-                        userId: currentRejectUserId, type: 'rejected',
-                        title: '❌ Withdrawal Rejected',
-                        message: `Your withdrawal was rejected. Reason: ${reason}. Coins have been refunded.`,
-                        createdAt: serverTimestamp()
-                    });
-                    showAlert('Rejected. Coins refunded to user.');
-                } catch (e) { showAlert(e.message); }
-            };
-        };
-        window.closeRejectModal = () => { document.getElementById('reject-modal').classList.add('hidden'); };
-
-        window.openQR = (url) => {
-            document.getElementById('qr-lightbox-img').src = url;
-            document.getElementById('qr-lightbox').classList.add('open');
-        };
-
-        function showAlert(msg) { document.getElementById('alert-message').textContent = msg; document.getElementById('custom-alert').classList.remove('hidden'); }
-        function showConfirm(msg, cb) {
-            document.getElementById('confirm-message').textContent = msg;
-            document.getElementById('custom-confirm').classList.remove('hidden');
-            const ok = document.getElementById('confirm-ok');
-            const cancel = document.getElementById('confirm-cancel');
-            const cleanup = () => { document.getElementById('custom-confirm').classList.add('hidden'); ok.onclick = null; cancel.onclick = null; };
-            ok.onclick = () => { cb(); cleanup(); };
-            cancel.onclick = cleanup;
+        if (cfg.adminUids) document.getElementById('s-adminUids').value = (cfg.adminUids||[]).join(', ');
+        // Load app settings from Firestore
+        if (db) {
+            getDoc(doc(db,'config','main')).then(snap => {
+                if (!snap.exists()) return;
+                const c = snap.data();
+                document.getElementById('s-daily-ad-limit').value = c.dailyAdLimit||10;
+                document.getElementById('s-ad-cooldown').value = c.adCooldown||60;
+                document.getElementById('s-daily-math-limit').value = c.dailyMathLimit||10;
+                document.getElementById('s-math-cooldown').value = c.mathCooldown||60;
+                document.getElementById('s-checkin-reward').value = c.checkinReward||50;
+                document.getElementById('s-referral-bonus').value = c.referralBonus||100;
+                document.getElementById('s-ad-reward').value = c.adReward||50;
+                document.getElementById('s-math-reward').value = c.mathReward||10;
+                document.getElementById('s-min-withdrawal').value = c.minWithdrawal||5000;
+                document.getElementById('s-coin-value-coins').value = c.coinValueCoins||1000;
+                document.getElementById('s-coin-value-inr').value = c.coinValueInr||10;
+                document.getElementById('s-payment-methods').value = (c.paymentMethods||[]).join(', ');
+            }).catch(()=>{});
         }
+    }
 
-        function navigateTo(pageId) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageId)?.classList.add('active');
-            document.querySelectorAll('.nav-link').forEach(a => a.classList.toggle('active', a.dataset.page === pageId));
-        }
-        function setupNavigation() {
-            document.querySelectorAll('.nav-link').forEach(a => a.addEventListener('click', e => { e.preventDefault(); navigateTo(a.dataset.page); }));
-        }
-    </script>
+    window.updatePanelCreds = function() {
+        const u = document.getElementById('new-username').value.trim();
+        const p = document.getElementById('new-password').value;
+        const p2 = document.getElementById('new-password2').value;
+        if (!u) return showAlert('Username required.');
+        if (p && p !== p2) return showAlert('Passwords do not match.');
+        if (p && p.length < 6) return showAlert('Password must be at least 6 characters.');
+        const cfg = getConfig() || {};
+        cfg.panelUsername = u;
+        if (p) cfg.panelPassword = btoa(p);
+        saveConfig(cfg);
+        showAlert('Login credentials updated!');
+    };
+
+    window.saveFirebaseConfig = function() {
+        const apiKey = document.getElementById('s-apiKey').value.trim();
+        const authDomain = document.getElementById('s-authDomain').value.trim();
+        const projectId = document.getElementById('s-projectId').value.trim();
+        const storageBucket = document.getElementById('s-storageBucket').value.trim();
+        const messagingSenderId = document.getElementById('s-messagingSenderId').value.trim();
+        const appId = document.getElementById('s-appId').value.trim();
+        const adminUids = document.getElementById('s-adminUids').value.split(',').map(s=>s.trim()).filter(Boolean);
+        if (!apiKey||!projectId||!appId) return showAlert('API Key, Project ID, and App ID are required.');
+        const cfg = getConfig() || {};
+        cfg.firebase = {apiKey,authDomain,projectId,storageBucket,messagingSenderId,appId};
+        cfg.adminUids = adminUids;
+        saveConfig(cfg);
+        showAlert('Firebase config saved! Reload the page to apply changes.');
+    };
+
+    window.saveAppSettings = async function() {
+        if (!db) return showAlert('Firebase not connected.');
+        const data = {
+            dailyAdLimit: +document.getElementById('s-daily-ad-limit').value||10,
+            adCooldown: +document.getElementById('s-ad-cooldown').value||60,
+            dailyMathLimit: +document.getElementById('s-daily-math-limit').value||10,
+            mathCooldown: +document.getElementById('s-math-cooldown').value||60,
+            checkinReward: +document.getElementById('s-checkin-reward').value||50,
+            referralBonus: +document.getElementById('s-referral-bonus').value||100,
+            adReward: +document.getElementById('s-ad-reward').value||50,
+            mathReward: +document.getElementById('s-math-reward').value||10,
+            minWithdrawal: +document.getElementById('s-min-withdrawal').value||5000,
+            coinValueCoins: +document.getElementById('s-coin-value-coins').value||1000,
+            coinValueInr: +document.getElementById('s-coin-value-inr').value||10,
+            paymentMethods: document.getElementById('s-payment-methods').value.split(',').map(s=>s.trim()).filter(Boolean)
+        };
+        try { await setDoc(doc(db,'config','main'),data,{merge:true}); showAlert('App settings saved!'); }
+        catch(e) { showAlert('Error: '+e.message); }
+    };
+
+    // ---- Modal helpers ----
+    function showAlert(msg) { document.getElementById('modal-alert-msg').textContent = msg; document.getElementById('modal-alert').classList.add('open'); }
+    window.closeAlert = () => document.getElementById('modal-alert').classList.remove('open');
+
+    let confirmCb = null;
+    function showConfirm(msg, cb) {
+        confirmCb = cb;
+        document.getElementById('modal-confirm-msg').textContent = msg;
+        document.getElementById('modal-confirm').classList.add('open');
+        document.getElementById('modal-confirm-ok').onclick = () => { closeConfirm(); if(confirmCb) confirmCb(); };
+    }
+    window.closeConfirm = () => document.getElementById('modal-confirm').classList.remove('open');
+</script>
 </body>
 </html>

@@ -6,6 +6,8 @@
     <title>RN Coin Hunt</title>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Firebase config injected from server environment variables (set in Render) -->
+    <script src="/config.js"></script>
 
     <!-- Monetag Ad SDK: Replace with your Monetag Telegram Mini App ad code -->
     <!-- <script src="YOUR_MONETAG_AD_SDK_URL" data-zone="YOUR_ZONE_ID"></script> -->
@@ -343,17 +345,14 @@
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        // ============================================================
-        // FIREBASE CONFIG — Replace with your own Firebase project
-        // ============================================================
-        const firebaseConfig = {
-            apiKey: "YOUR_FIREBASE_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+        // Firebase config is loaded from server env vars via /config.js
+        // Set these in Render Environment Variables — no code editing needed
+        const firebaseConfig = (window.APP_CONFIG && window.APP_CONFIG.firebase) ? window.APP_CONFIG.firebase : {};
+        const botUsername = (window.APP_CONFIG && window.APP_CONFIG.botUsername) ? window.APP_CONFIG.botUsername : '';
+
+        if (!firebaseConfig.apiKey) {
+            document.getElementById('loader').innerHTML = '<div style="color:#f59e0b;text-align:center;padding:2rem;font-family:sans-serif"><p style="font-size:2rem">⚠️</p><p style="font-size:1.1rem;font-weight:700;margin-top:0.5rem">Firebase not configured</p><p style="color:#aaa;margin-top:0.5rem;font-size:0.85rem">Please set environment variables in Render</p></div>';
+        }
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -666,7 +665,6 @@
         });
 
         document.getElementById('share-btn').addEventListener('click', () => {
-            const botUsername = 'YOUR_BOT_USERNAME'; // Replace with your bot username
             const code = userData.referralCode || '';
             const url = `https://t.me/${botUsername}?start=${code}`;
             if (window.Telegram?.WebApp) { window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent('Join RN Coin Hunt and earn coins! Use my code: ' + code)}`); }
