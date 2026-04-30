@@ -407,8 +407,12 @@
                                 <textarea id="s-monetag-script" rows="4" class="inp resize-none font-mono text-xs" placeholder='<script src="https://..." data-zone="12345678" async></script>'></textarea>
                             </div>
                             <div>
-                                <label class="field-label">Ad Show Function <span class="text-white/30 text-xs">(the function call that displays the ad)</span></label>
+                                <label class="field-label">Ad Show Function <span class="text-white/30 text-xs">(Rewarded Interstitial — used for Check-in / Quiz / Watch Ad / Coupon)</span></label>
                                 <input type="text" id="s-monetag-fn" class="inp font-mono" placeholder="show_9630873()">
+                            </div>
+                            <div>
+                                <label class="field-label">Withdrawal Popup Function <span class="text-white/30 text-xs">(Rewarded Popup — plays once before each Withdrawal submit. Leave empty to disable.)</span></label>
+                                <input type="text" id="s-monetag-popup-fn" class="inp font-mono" placeholder="show_9630873('pop')">
                             </div>
                         </div>
                         <button onclick="saveAdSettings()" class="btn-primary px-6 py-2.5 rounded-xl mt-4">💾 Save Ad Settings</button>
@@ -1000,8 +1004,9 @@
                 document.getElementById('s-help-link').value    = c.helpLink    || '';
                 document.getElementById('s-policy-text').value  = c.policyText  || '';
                 // Ad settings
-                document.getElementById('s-monetag-script').value = c.monetagScript || '';
-                document.getElementById('s-monetag-fn').value      = c.monetagAdFn   || '';
+                document.getElementById('s-monetag-script').value   = c.monetagScript   || '';
+                document.getElementById('s-monetag-fn').value       = c.monetagAdFn    || '';
+                document.getElementById('s-monetag-popup-fn').value = c.monetagPopupFn || '';
                 document.getElementById('s-custom-head').value     = c.customHeadCode|| '';
             }).catch(()=>{});
         }
@@ -1067,11 +1072,12 @@
 
     window.saveAdSettings = async function() {
         if (!db) return showAlert('Firebase not connected.');
-        const monetagScript  = document.getElementById('s-monetag-script').value.trim();
-        const monetagAdFn    = document.getElementById('s-monetag-fn').value.trim();
-        const customHeadCode = document.getElementById('s-custom-head').value.trim();
+        const monetagScript   = document.getElementById('s-monetag-script').value.trim();
+        const monetagAdFn     = document.getElementById('s-monetag-fn').value.trim();
+        const monetagPopupFn  = document.getElementById('s-monetag-popup-fn').value.trim();
+        const customHeadCode  = document.getElementById('s-custom-head').value.trim();
         try {
-            await setDoc(doc(db,'config','main'), { monetagScript, monetagAdFn, customHeadCode }, { merge: true });
+            await setDoc(doc(db,'config','main'), { monetagScript, monetagAdFn, monetagPopupFn, customHeadCode }, { merge: true });
             showAlert('✅ Ad settings saved! Will auto-load in the User App.');
         } catch(e) { showAlert('Error: '+e.message); }
     };
