@@ -48,7 +48,51 @@ Recommended dev rule (until proper rules are written): `allow read, write: if re
 
 ## Telegram bot features
 
-### User menu (`/start`)
+### User app (`/user-app/`) — earn flows
+
+All four "Earn Coins" tasks gate the reward behind a Monetag video ad
+(via `playMonetagAd()`):
+
+1. **Daily Check-in** → ad plays first, then `+checkinReward` once per day.
+2. **Math Quiz** → 2-digit numbers (10–99), only `+` and `-`. Subtraction
+   is always `larger − smaller` so the answer can't be negative.
+   On a correct answer, ad plays first, then `+mathReward`.
+3. **Watch Video Ad** → ad plays, then `+adReward`.
+4. **Claim Coupon** → user enters a code, it's validated against the
+   `coupons` collection (re-validated again after the ad in case it gets
+   exhausted mid-flow), ad plays, then `+coinsPerUser` is added and a
+   `user_notifications` doc is written. Mirrors the bot's claim flow.
+
+### Withdrawal (in-app, UPI)
+
+- All `withdrawalOptions` from `config/main` are shown regardless of
+  balance. Amounts above the user's balance are styled muted; selecting
+  one shows an inline red warning, and submitting shows
+  "Insufficient balance" — selection itself is allowed.
+- A user with **any** withdrawal in `pending` or `binned` status cannot
+  submit a new one. A yellow banner appears above the submit button and
+  the button is disabled until the previous request is `approved` or
+  `rejected`.
+
+### Ad-blocker / DNS-blocker detection
+
+On app load (after auth), `detectAdBlocker()` runs in the background
+when ads are configured. Two signals:
+
+1. A bait `<div class="adsbox ads ad-banner adsbygoogle …">` — most
+   browser blockers hide it (`offsetHeight === 0`).
+2. After the Monetag SDK is injected, the configured ad function (e.g.
+   `show_10945427`) should appear on `window`. If it never does within
+   ~4s, the SDK was blocked (typical for DNS-level blockers like
+   `dns.adguard.com`).
+
+If detected, a full-screen `#adblock-modal` (z-index 200) covers the
+app. The user must disable the blocker and tap **🔄 Retry**, which
+re-runs detection. Ad task buttons also call `playMonetagAd()`, which
+does its own runtime check and pops the same modal if the function is
+missing.
+
+### Telegram bot user menu (`/start`)
 Inline grid: Tasks (web app) · Balance · Withdraw · Claim Coupon · Join Channel · Help · My ID · Policy. Each detail screen has a "← Back to Menu" button.
 
 - **Balance** → shows balance/value with Withdraw + History + Back buttons

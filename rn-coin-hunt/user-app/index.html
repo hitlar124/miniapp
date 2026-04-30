@@ -220,6 +220,20 @@
                         </div>
                         <button id="btn-ad" class="btn-neon px-5 py-2 rounded-lg text-sm font-bold" onclick="watchAd()">Watch</button>
                     </div>
+
+                    <!-- Claim Coupon -->
+                    <div class="glass-card p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="task-icon bg-green-500/10 border border-green-500/20 text-green-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5a2 2 0 011.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-[15px]">Claim Coupon</h3>
+                                <p class="text-xs text-yellow-400 font-semibold mt-0.5">Watch ad &amp; redeem code</p>
+                            </div>
+                        </div>
+                        <button id="btn-coupon" class="btn-neon px-5 py-2 rounded-lg text-sm font-bold" onclick="openCouponModal()">Claim</button>
+                    </div>
                 </div>
             </div>
 
@@ -364,6 +378,39 @@
         </div>
     </div>
 
+    <!-- AD BLOCKER WARNING (full-screen blocker) -->
+    <div id="adblock-modal" class="hidden fixed inset-0 bg-black/95 flex items-center justify-center z-[200] p-5 backdrop-blur-md">
+        <div class="glass-card p-7 w-full max-w-[360px] text-center border border-red-500/30">
+            <div class="w-16 h-16 mx-auto bg-red-500/15 border border-red-500/40 rounded-full flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-9 h-9 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <h3 class="font-bold text-xl mb-2 text-red-300">Ad Blocker Detected</h3>
+            <p class="text-sm text-gray-300 leading-relaxed mb-2">
+                We detected an <b>ad blocker</b> or <b>ad-blocking DNS</b>
+                (e.g. <span class="text-yellow-400 font-mono text-xs">dns.adguard.com</span>)
+                on your device.
+            </p>
+            <p class="text-sm text-gray-300 leading-relaxed mb-5">
+                You must <b>turn it off</b> to use this app.
+                Disable it and tap <b>Retry</b>, or close &amp; reopen the app.
+            </p>
+            <button id="adblock-retry-btn" class="w-full py-3.5 rounded-xl btn-neon text-[15px]">🔄 Retry</button>
+        </div>
+    </div>
+
+    <!-- COUPON MODAL -->
+    <div id="coupon-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+        <div class="glass-card p-6 w-full max-w-[320px] text-center">
+            <h3 class="font-bold text-xl mb-1">🎁 Claim Coupon</h3>
+            <p class="text-xs text-yellow-400 mb-6">Enter your code &amp; watch an ad to earn coins</p>
+            <input id="coupon-code-input" type="text" placeholder="ENTER CODE" class="input-glass py-4 text-center text-lg font-bold mb-6 tracking-widest uppercase" autocapitalize="characters" autocorrect="off">
+            <div class="flex gap-3">
+                <button onclick="closeCouponModal()" class="flex-1 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-bold">Cancel</button>
+                <button id="coupon-submit-btn" onclick="submitCoupon()" class="flex-1 py-3.5 rounded-xl btn-neon">Get Coins</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MATH QUIZ MODAL -->
     <div id="math-quiz-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
         <div class="glass-card p-6 w-full max-w-[320px] text-center">
@@ -474,6 +521,10 @@
                     startTimers();
                     showView('app-container');
                     navigateTo('home-page');
+                    // Run ad-blocker detection in the background (don't block UI).
+                    // If blocked, the warning modal pops over the app and the
+                    // user must disable the blocker + tap Retry.
+                    detectAdBlocker().then(blocked => { if (blocked) showAdBlockerWarning(); }).catch(()=>{});
                 } catch (e) { showAlert('Failed to load data. Please try again.'); }
                 finally { loader.style.display = 'none'; }
             } else {
@@ -617,6 +668,13 @@
         window.handleCheckIn = async function() {
             const today = new Date().toISOString().split('T')[0];
             if (userData.lastCheckInDate === today) return showAlert('Already claimed today!');
+            // Show an ad first, then credit the reward.
+            try {
+                await playMonetagAd();
+            } catch (e) {
+                showAlert(e.message || 'Ad not available. Please try again later.');
+                return;
+            }
             const reward = appConfig.checkinReward || 50;
             try {
                 await updateDoc(doc(db, 'users', currentUser.uid), { balance: increment(reward), lastCheckInDate: today });
@@ -625,12 +683,15 @@
             } catch (e) { showAlert(e.message); }
         };
 
+        // Math quiz — only +/- with two-digit numbers (10–99); subtraction always
+        // larger − smaller so the answer is never negative.
         window.openMathQuiz = function() {
-            const a = Math.floor(Math.random() * 50) + 1;
-            const b = Math.floor(Math.random() * 50) + 1;
-            const ops = ['+', '-', '*'];
+            const rand2 = () => Math.floor(Math.random() * 90) + 10; // 10..99
+            const ops = ['+', '-'];
             const op = ops[Math.floor(Math.random() * ops.length)];
-            mathAnswer = op === '+' ? a + b : op === '-' ? a - b : a * b;
+            let a = rand2(), b = rand2();
+            if (op === '-' && b > a) { const t = a; a = b; b = t; } // ensure a >= b
+            mathAnswer = op === '+' ? a + b : a - b;
             document.getElementById('math-question').textContent = `${a} ${op} ${b}`;
             document.getElementById('math-answer').value = '';
             document.getElementById('math-quiz-modal').classList.remove('hidden');
@@ -643,7 +704,86 @@
             if (isNaN(ans)) return showAlert('Please enter a number.');
             if (ans !== mathAnswer) { showAlert('Wrong answer! Try again.'); return; }
             closeMathQuiz();
+            // Show an ad first, then credit the reward.
+            try {
+                await playMonetagAd();
+            } catch (e) {
+                showAlert(e.message || 'Ad not available. Please try again later.');
+                return;
+            }
             await giveAdReward('math');
+        };
+
+        // ── Coupon claim (with ad before crediting) ──────────────────
+        window.openCouponModal = function() {
+            document.getElementById('coupon-code-input').value = '';
+            document.getElementById('coupon-modal').classList.remove('hidden');
+        };
+        window.closeCouponModal = function() {
+            document.getElementById('coupon-modal').classList.add('hidden');
+        };
+        window.submitCoupon = async function() {
+            const input = document.getElementById('coupon-code-input');
+            const code = (input.value || '').trim().toUpperCase();
+            if (!code) return showAlert('Please enter a coupon code.');
+            const submitBtn = document.getElementById('coupon-submit-btn');
+            submitBtn.classList.add('btn-disabled');
+            submitBtn.textContent = 'Checking...';
+            try {
+                // 1) Validate the code first so we don't burn an ad on a bad code.
+                const q = query(collection(db, 'coupons'), where('code', '==', code));
+                const snap = await getDocs(q);
+                if (snap.empty) { showAlert(`Invalid coupon code: ${code}`); return; }
+                const docRef = snap.docs[0].ref;
+                const c = snap.docs[0].data();
+                if ((c.usedCount || 0) >= (c.totalUses || 0)) {
+                    showAlert(`Coupon ${code} is fully claimed.`); return;
+                }
+                if ((c.usedBy || []).includes(currentUser.uid)) {
+                    showAlert(`You already claimed ${code}.`); return;
+                }
+                // 2) Show ad.
+                submitBtn.textContent = 'Loading ad...';
+                try {
+                    await playMonetagAd();
+                } catch (e) {
+                    showAlert(e.message || 'Ad not available. Please try again later.');
+                    return;
+                }
+                // 3) Re-check the coupon after the ad (someone else may have used it).
+                const fresh = await getDoc(docRef);
+                if (!fresh.exists()) { showAlert('Coupon no longer exists.'); return; }
+                const f = fresh.data();
+                if ((f.usedCount || 0) >= (f.totalUses || 0)) {
+                    showAlert(`Coupon ${code} is fully claimed.`); return;
+                }
+                if ((f.usedBy || []).includes(currentUser.uid)) {
+                    showAlert(`You already claimed ${code}.`); return;
+                }
+                const coins = f.coinsPerUser || 0;
+                // 4) Apply: increment coupon usage + user balance + write a notification.
+                await updateDoc(docRef, {
+                    usedCount: increment(1),
+                    usedBy: [...(f.usedBy || []), currentUser.uid]
+                });
+                await updateDoc(doc(db, 'users', currentUser.uid), { balance: increment(coins) });
+                await addDoc(collection(db, 'user_notifications'), {
+                    userId: currentUser.uid,
+                    type: 'coupon',
+                    title: '🎁 Coupon Claimed!',
+                    message: `You claimed code ${code} and got ${coins} coins.`,
+                    createdAt: serverTimestamp()
+                });
+                userData.balance = (userData.balance || 0) + coins;
+                updateUI();
+                closeCouponModal();
+                showAlert(`✅ Coupon ${code} claimed! +${coins} Coins added to your balance.`);
+            } catch (e) {
+                showAlert(e.message || 'Failed to claim coupon.');
+            } finally {
+                submitBtn.classList.remove('btn-disabled');
+                submitBtn.textContent = 'Get Coins';
+            }
         };
 
         // ── Inject ad scripts from Firebase config (once) ─────────────
@@ -683,32 +823,91 @@
             } catch (err) { console.error('Ad inject error:', err); }
         }
 
+        // ── Shared: play one Monetag ad. Resolves on success, rejects on failure.
+        // If no ad is configured in admin, resolves immediately (so dev/testing works).
+        async function playMonetagAd() {
+            const adFn = appConfig?.monetagAdFn?.trim();
+            if (!adFn) return; // no ad configured — treat as success
+            // Sanity check: pull the function name out of e.g. "show_10945427()"
+            const adFnName = adFn.replace(/\(.*$/, '').trim();
+            if (adFnName && typeof window[adFnName] !== 'function') {
+                // SDK never loaded → almost certainly an ad blocker / DNS block.
+                showAdBlockerWarning();
+                throw new Error('Ad blocker detected. Please disable it and try again.');
+            }
+            return new Promise((resolve, reject) => {
+                try {
+                    new Function('resolve','reject', `
+                        try {
+                            const r = ${adFn};
+                            if (r && typeof r.then === 'function') { r.then(resolve).catch(reject); }
+                            else { resolve(r); }
+                        } catch(e) { reject(e); }
+                    `)(resolve, reject);
+                } catch(e) { reject(e); }
+            });
+        }
+
         // ── Watch Ad (calls Monetag function saved in Firebase) ────────
         window.watchAd = async function() {
-            const adFn = appConfig?.monetagAdFn?.trim();
-            if (!adFn) {
-                // No ad configured — give reward directly (for testing)
-                await giveAdReward('ad');
-                return;
-            }
             try {
-                // Call the Monetag function (e.g. show_9630873())
-                const result = await new Promise((resolve, reject) => {
-                    try {
-                        const ret = new Function('resolve','reject', `
-                            try {
-                                const r = ${adFn};
-                                if (r && typeof r.then === 'function') { r.then(resolve).catch(reject); }
-                                else { resolve(r); }
-                            } catch(e) { reject(e); }
-                        `)(resolve, reject);
-                    } catch(e) { reject(e); }
-                });
+                await playMonetagAd();
                 await giveAdReward('ad');
             } catch (e) {
-                showAlert('Ad not available. Please try again later.');
+                showAlert(e.message || 'Ad not available. Please try again later.');
             }
         };
+
+        // ── Ad blocker detection ──────────────────────────────────────
+        // Two signals:
+        //  1) A bait element with ad-related class names — most browser ad
+        //     blockers hide it (offsetHeight === 0).
+        //  2) After ads are configured, the Monetag ad function should appear
+        //     on window. If it never does, the SDK was blocked (most often by
+        //     a DNS-level blocker like dns.adguard.com).
+        async function detectAdBlocker() {
+            // Skip if no ads are configured at all (dev with no admin config).
+            const adFn = appConfig?.monetagAdFn?.trim();
+            const sdk = appConfig?.monetagScript?.trim();
+            if (!adFn && !sdk) return false;
+
+            // (1) Bait element
+            try {
+                const bait = document.createElement('div');
+                bait.className = 'adsbox ads ad-banner adsbygoogle ad-placement google_ads';
+                bait.style.cssText = 'position:absolute;left:-9999px;top:-9999px;height:10px;width:10px;display:block;visibility:visible;opacity:1';
+                bait.innerHTML = '&nbsp;';
+                document.body.appendChild(bait);
+                await new Promise(r => setTimeout(r, 120));
+                const cs = window.getComputedStyle(bait);
+                const blocked = bait.offsetHeight === 0
+                    || bait.offsetParent === null
+                    || cs.display === 'none'
+                    || cs.visibility === 'hidden';
+                bait.remove();
+                if (blocked) return true;
+            } catch (_) { /* ignore */ }
+
+            // (2) Wait for the Monetag function to appear on window.
+            if (adFn) {
+                const adFnName = adFn.replace(/\(.*$/, '').trim();
+                if (adFnName) {
+                    for (let i = 0; i < 16; i++) {
+                        if (typeof window[adFnName] === 'function') return false;
+                        await new Promise(r => setTimeout(r, 250));
+                    }
+                    return true; // 4s waited, function never appeared → blocked
+                }
+            }
+            return false;
+        }
+
+        function showAdBlockerWarning() {
+            document.getElementById('adblock-modal').classList.remove('hidden');
+        }
+        function hideAdBlockerWarning() {
+            document.getElementById('adblock-modal').classList.add('hidden');
+        }
 
         async function giveAdReward(type) {
             const now = Date.now();
@@ -737,25 +936,72 @@
         let historyPage = 0;   // 0 = latest 5
         const HIST_PAGE_SIZE = 5;
 
+        // True if the user has any withdrawal that hasn't been approved/rejected yet.
+        function hasPendingWithdrawal() {
+            return historyAll.some(r => r.status === 'pending' || r.status === 'binned');
+        }
+
         function renderWithdrawForm() {
             const cfg = appConfig;
             const bal = userData?.balance || 0;
-            const opts = (cfg.withdrawalOptions || []).filter(o => o <= bal);
+            // Show ALL configured withdrawal options regardless of balance.
+            // Selecting one with insufficient balance is allowed; the submit
+            // step will show an error.
+            const opts = (cfg.withdrawalOptions || []).slice();
             const methods = cfg.paymentMethods || [];
 
             // Amount buttons
             const amtBox = document.getElementById('wf-amounts');
             if (opts.length === 0) {
-                amtBox.innerHTML = `<p class="col-span-3 text-xs text-gray-500 py-2">No amount options available for your balance.</p>`;
+                amtBox.innerHTML = `<p class="col-span-3 text-xs text-gray-500 py-2">No withdrawal amounts are configured yet.</p>`;
                 wfState.amount = null;
             } else {
                 if (!opts.includes(wfState.amount)) wfState.amount = null;
-                amtBox.innerHTML = opts.map(o => `
-                    <button type="button" data-amt="${o}" class="wf-amt-btn py-2.5 rounded-lg border text-sm font-bold transition ${wfState.amount === o ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300' : 'bg-white/5 border-white/10 text-gray-300'}">🪙 ${o}</button>
-                `).join('');
+                amtBox.innerHTML = opts.map(o => {
+                    const isSel  = wfState.amount === o;
+                    const isOver = o > bal;
+                    let cls = 'bg-white/5 border-white/10 text-gray-300';
+                    if (isSel && isOver) cls = 'bg-red-500/15 border-red-500/60 text-red-300';
+                    else if (isSel)      cls = 'bg-yellow-500/20 border-yellow-500 text-yellow-300';
+                    else if (isOver)     cls = 'bg-white/[0.03] border-white/5 text-gray-500';
+                    return `<button type="button" data-amt="${o}" class="wf-amt-btn py-2.5 rounded-lg border text-sm font-bold transition ${cls}">🪙 ${o}</button>`;
+                }).join('');
                 amtBox.querySelectorAll('.wf-amt-btn').forEach(btn => {
                     btn.addEventListener('click', () => { wfState.amount = parseInt(btn.dataset.amt); renderWithdrawForm(); });
                 });
+            }
+
+            // Inline insufficient-balance warning under the amounts grid.
+            let warn = document.getElementById('wf-amount-warn');
+            if (!warn) {
+                warn = document.createElement('p');
+                warn.id = 'wf-amount-warn';
+                warn.className = 'text-[11px] text-red-400 mt-1.5 hidden';
+                amtBox.parentElement.appendChild(warn);
+            }
+            if (wfState.amount && wfState.amount > bal) {
+                warn.textContent = `Insufficient balance for ${wfState.amount} Coins. Your balance: ${bal} Coins.`;
+                warn.classList.remove('hidden');
+            } else {
+                warn.classList.add('hidden');
+            }
+
+            // Pending-withdrawal banner
+            let pendBox = document.getElementById('wf-pending-banner');
+            if (!pendBox) {
+                pendBox = document.createElement('div');
+                pendBox.id = 'wf-pending-banner';
+                pendBox.className = 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-xs rounded-lg p-3 hidden';
+                document.getElementById('wf-submit').parentElement.insertBefore(
+                    pendBox, document.getElementById('wf-submit')
+                );
+            }
+            const blocked = hasPendingWithdrawal();
+            if (blocked) {
+                pendBox.textContent = '⏳ You already have a pending withdrawal request. Please wait until it is approved or rejected before submitting another one.';
+                pendBox.classList.remove('hidden');
+            } else {
+                pendBox.classList.add('hidden');
             }
 
             // Method buttons
@@ -773,9 +1019,11 @@
                 });
             }
 
-            // Submit button enable/disable
+            // Submit button enable/disable.
+            // We DO let the user press it even if the amount > balance, so the
+            // error message shows on submit (per spec).
             const upi = document.getElementById('wf-upi').value.trim();
-            const ok = wfState.amount && wfState.method && upi.length >= 3 && bal >= (cfg.minWithdrawal || 0);
+            const ok = !blocked && wfState.amount && wfState.method && upi.length >= 3;
             const submit = document.getElementById('wf-submit');
             submit.classList.toggle('btn-disabled', !ok);
         }
@@ -784,10 +1032,11 @@
             const cfg = appConfig;
             const bal = userData?.balance || 0;
             const upi = document.getElementById('wf-upi').value.trim();
+            if (hasPendingWithdrawal()) return showAlert('You already have a pending withdrawal request. Please wait until it is approved or rejected before submitting another one.');
             if (!wfState.amount) return showAlert('Please choose an amount.');
             if (!wfState.method) return showAlert('Please choose a payment method.');
             if (!upi || upi.length < 3) return showAlert('Please enter a valid UPI ID.');
-            if (bal < wfState.amount) return showAlert('Insufficient balance.');
+            if (bal < wfState.amount) return showAlert(`Insufficient balance. You need ${wfState.amount} Coins but only have ${bal} Coins.`);
             if (bal < (cfg.minWithdrawal || 0)) return showAlert(`Minimum withdrawal is ${cfg.minWithdrawal} coins.`);
 
             const submit = document.getElementById('wf-submit');
@@ -886,6 +1135,9 @@
                 historyAll = snap.docs.map(d => d.data())
                     .sort((a, b) => (b.requestedAt?.toMillis?.() || 0) - (a.requestedAt?.toMillis?.() || 0));
                 renderHistoryPage();
+                // Re-render the withdraw form so the "pending" banner and the
+                // submit button reflect the latest history.
+                renderWithdrawForm();
             } catch (e) { console.error(e); }
         }
 
@@ -969,6 +1221,22 @@
         });
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
         document.getElementById('alert-ok-btn').addEventListener('click', () => document.getElementById('custom-alert').classList.add('hidden'));
+        document.getElementById('adblock-retry-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('adblock-retry-btn');
+            btn.classList.add('btn-disabled');
+            btn.textContent = 'Checking...';
+            try {
+                const stillBlocked = await detectAdBlocker();
+                if (!stillBlocked) {
+                    hideAdBlockerWarning();
+                } else {
+                    showAlert('Ad blocker still detected. Please disable it and try again.');
+                }
+            } finally {
+                btn.classList.remove('btn-disabled');
+                btn.textContent = '🔄 Retry';
+            }
+        });
         document.getElementById('notif-bell').addEventListener('click', () => navigateTo('notifications-page'));
 
         function showAlert(msg) {
