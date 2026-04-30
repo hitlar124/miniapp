@@ -111,18 +111,18 @@
         <div class="setup-step" id="step-3">
             <div class="flex items-center gap-3 mb-4">
                 <div class="step-circle bg-yellow-500/20 text-yellow-400">3</div>
-                <div><p class="font-bold">Firebase Admin Account</p><p class="text-xs text-gray-400">User App-এ যে email দিয়ে register করেছেন</p></div>
+                <div><p class="font-bold">Firebase Admin Account</p><p class="text-xs text-gray-400">The email you registered with in the User App</p></div>
             </div>
             <div class="info-box mb-4">
-                📌 <b>কীভাবে করবেন:</b><br>
-                1. আপনার <b>User App</b> খুলুন → Register করুন (admin email দিয়ে)<br>
-                2. <b>Firebase Console</b> → Authentication → Users → আপনার email এর <b>UID</b> কপি করুন<br>
-                3. নিচে সেই email, password ও UID বসান
+                📌 <b>How to do this:</b><br>
+                1. Open your <b>User App</b> → Register with the admin email<br>
+                2. <b>Firebase Console</b> → Authentication → Users → copy the <b>UID</b> for that email<br>
+                3. Enter the email, password and UID below
             </div>
             <div class="space-y-3">
                 <div><label class="field-label">Firebase Admin Email</label><input id="setup-adminEmail" type="email" placeholder="admin@example.com" class="inp"></div>
-                <div><label class="field-label">Firebase Admin Password (User App-এ দেওয়া)</label><input id="setup-adminFbPass" type="password" placeholder="Firebase password" class="inp"></div>
-                <div><label class="field-label">Admin UID (Firebase Console থেকে)</label><input id="setup-adminUid" type="text" placeholder="e.g. abc123xyz456" class="inp"></div>
+                <div><label class="field-label">Firebase Admin Password (the one you set in User App)</label><input id="setup-adminFbPass" type="password" placeholder="Firebase password" class="inp"></div>
+                <div><label class="field-label">Admin UID (from Firebase Console)</label><input id="setup-adminUid" type="text" placeholder="e.g. abc123xyz456" class="inp"></div>
             </div>
             <div class="flex gap-3 mt-5">
                 <button onclick="showSetupStep(2)" class="flex-1 btn-ghost py-3 rounded-xl">← Back</button>
@@ -145,8 +145,8 @@
         <button onclick="handleLogin()" class="w-full btn-primary py-3 rounded-xl mt-5 text-[15px]">Login</button>
         <p id="login-err" class="text-red-400 text-sm mt-3 hidden">Wrong username or password.</p>
         <div class="mt-6 pt-5 border-t border-white/5">
-            <p class="text-gray-500 text-xs mb-2">পাসওয়ার্ড ভুলে গেছেন?</p>
-            <button onclick="doReset()" class="text-orange-400 text-sm hover:text-orange-300 underline underline-offset-2 transition">Setup আবার করুন (Reset)</button>
+            <p class="text-gray-500 text-xs mb-2">Forgot your password?</p>
+            <button onclick="doReset()" class="text-orange-400 text-sm hover:text-orange-300 underline underline-offset-2 transition">Run Setup Again (Reset)</button>
         </div>
     </div>
 </div>
@@ -172,6 +172,14 @@
                 <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
                 Withdrawals
                 <span id="pending-badge" class="hidden ml-auto bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">0</span>
+            </div>
+            <div class="nav-link" onclick="navTo('pg-bin')">
+                <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a2 2 0 012-2h2a2 2 0 012 2v3"/></svg>
+                Bin Requests
+            </div>
+            <div class="nav-link" onclick="navTo('pg-coupons')">
+                <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                Coupons
             </div>
             <div class="nav-link" onclick="navTo('pg-broadcast')">
                 <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
@@ -233,6 +241,36 @@
             <div class="glass overflow-hidden"><div class="overflow-x-auto">
                 <table><thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Account Name</th><th>QR Code</th><th>Date</th><th>Actions</th></tr></thead>
                 <tbody id="withdrawals-tbody"></tbody></table>
+            </div></div>
+        </div>
+
+        <!-- Bin Requests Page -->
+        <div id="pg-bin" class="page">
+            <h1 class="text-2xl font-bold mb-5">Bin Requests <span class="text-sm font-normal text-gray-400">(<span id="stat-binned">0</span>)</span></h1>
+            <div class="info-box mb-4">
+                🗑️ Requests moved to bin from Withdrawals page or Telegram bot. Use Return to send back to Pending.
+            </div>
+            <div class="glass overflow-hidden"><div class="overflow-x-auto">
+                <table><thead><tr><th>User</th><th>Amount</th><th>Method</th><th>QR Code</th><th>Binned At</th><th>Action</th></tr></thead>
+                <tbody id="bin-tbody"></tbody></table>
+            </div></div>
+        </div>
+
+        <!-- Coupons Page -->
+        <div id="pg-coupons" class="page">
+            <h1 class="text-2xl font-bold mb-5">Coupons</h1>
+            <div class="glass p-6 max-w-xl mb-6">
+                <h2 class="font-bold text-lg mb-4">Create New Coupon</h2>
+                <div class="grid grid-cols-3 gap-3">
+                    <div><label class="field-label">Code (or blank for auto)</label><input id="cp-code" type="text" class="inp" placeholder="WELCOME50"></div>
+                    <div><label class="field-label">Total Uses</label><input id="cp-uses" type="number" class="inp" placeholder="100"></div>
+                    <div><label class="field-label">Coins per User</label><input id="cp-coins" type="number" class="inp" placeholder="50"></div>
+                </div>
+                <button onclick="createCoupon()" class="btn-primary px-6 py-2.5 rounded-xl mt-4">Create Coupon</button>
+            </div>
+            <div class="glass overflow-hidden"><div class="overflow-x-auto">
+                <table><thead><tr><th>Code</th><th>Coins</th><th>Used</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
+                <tbody id="coupons-tbody"></tbody></table>
             </div></div>
         </div>
 
@@ -324,10 +362,23 @@
                             <div><label class="field-label">Min Withdrawal (Coins)</label><input type="number" id="s-min-withdrawal" class="inp" placeholder="5000"></div>
                             <div><label class="field-label">Exchange: Coins</label><input type="number" id="s-coin-value-coins" class="inp" placeholder="1000"></div>
                             <div><label class="field-label">Exchange: ₹</label><input type="number" id="s-coin-value-inr" class="inp" placeholder="10"></div>
-                            <div class="col-span-3"><label class="field-label">Payment Methods — comma separated (যেমন: UPI, Paytm, bKash)</label><input type="text" id="s-payment-methods" class="inp" placeholder="UPI, Paytm, bKash"></div>
-                            <div class="col-span-3"><label class="field-label">Withdrawal Options (Coin amount) — comma separated (যেমন: 1000, 2000, 5000, 10000)</label><input type="text" id="s-withdrawal-options" class="inp" placeholder="1000, 2000, 5000, 10000"></div>
+                            <div class="col-span-3"><label class="field-label">Payment Methods — comma separated (e.g. UPI, Paytm, bKash)</label><input type="text" id="s-payment-methods" class="inp" placeholder="UPI, Paytm, bKash"></div>
+                            <div class="col-span-3"><label class="field-label">Withdrawal Options (Coin amount) — comma separated (e.g. 1000, 2000, 5000, 10000)</label><input type="text" id="s-withdrawal-options" class="inp" placeholder="1000, 2000, 5000, 10000"></div>
                         </div>
-                        <button onclick="saveAppSettings()" class="btn-primary px-6 py-2.5 rounded-xl mt-4">Save App Settings</button>
+                    </div>
+
+                    <div class="glass p-5 col-span-2">
+                        <h3 class="font-bold text-yellow-400 mb-1">Bot Buttons (Channel / Help / Policy)</h3>
+                        <p class="text-white/50 text-xs mb-4">These show up in the Telegram bot main menu. Channel/Help take a Telegram link (e.g. https://t.me/YourChannel). Policy is plain text shown to users.</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="field-label">📢 Channel Link</label><input type="text" id="s-channel-link" class="inp" placeholder="https://t.me/YourChannel"></div>
+                            <div><label class="field-label">🆘 Help Link (admin chat)</label><input type="text" id="s-help-link" class="inp" placeholder="https://t.me/YourSupport"></div>
+                            <div class="col-span-2"><label class="field-label">📜 Policy Text (plain text, shown to users)</label><textarea id="s-policy-text" rows="5" class="inp resize-none" placeholder="Write your app rules and policy here..."></textarea></div>
+                        </div>
+                    </div>
+
+                    <div class="col-span-2">
+                        <button onclick="saveAppSettings()" class="btn-primary px-6 py-2.5 rounded-xl">Save All App Settings</button>
                     </div>
                 </div>
             </div>
@@ -339,24 +390,24 @@
                     <!-- Monetag -->
                     <div class="glass p-5">
                         <h3 class="font-bold text-yellow-400 mb-1">📺 Monetag Ad Integration</h3>
-                        <p class="text-white/50 text-xs mb-4">Monetag dashboard থেকে কোড নিয়ে এখানে paste করুন — আর কিছু করতে হবে না।</p>
+                        <p class="text-white/50 text-xs mb-4">Copy your code from the Monetag dashboard and paste it here — that's all.</p>
 
                         <div class="info-box mb-4 text-xs leading-relaxed">
-                            <b>কীভাবে পাবেন:</b><br>
+                            <b>How to get it:</b><br>
                             1. <b>monetag.com</b> → Login → Sites → Add Site<br>
-                            2. Site verify করুন → Ad Zones → <b>Telegram Mini App</b> zone তৈরি করুন<br>
-                            3. Integration Code-এ দুটো অংশ থাকবে:<br>
-                            &nbsp;&nbsp;&nbsp;• একটা <code style="background:rgba(255,255,255,0.1);padding:1px 4px;border-radius:3px">&lt;script&gt;</code> tag → নিচে "Script Tag" বক্সে paste করুন<br>
-                            &nbsp;&nbsp;&nbsp;• একটা function call যেমন <code style="background:rgba(255,255,255,0.1);padding:1px 4px;border-radius:3px">show_9630873()</code> → "Ad Function" বক্সে paste করুন
+                            2. Verify site → Ad Zones → create a <b>Telegram Mini App</b> zone<br>
+                            3. The integration code has two parts:<br>
+                            &nbsp;&nbsp;&nbsp;• A <code style="background:rgba(255,255,255,0.1);padding:1px 4px;border-radius:3px">&lt;script&gt;</code> tag → paste in "Script Tag" below<br>
+                            &nbsp;&nbsp;&nbsp;• A function call like <code style="background:rgba(255,255,255,0.1);padding:1px 4px;border-radius:3px">show_9630873()</code> → paste in "Ad Function"
                         </div>
 
                         <div class="space-y-4">
                             <div>
-                                <label class="field-label">Monetag Script Tag <span class="text-white/30 text-xs">(Monetag-এর &lt;script&gt; tag টা এখানে paste করুন)</span></label>
+                                <label class="field-label">Monetag Script Tag <span class="text-white/30 text-xs">(paste the &lt;script&gt; tag from Monetag here)</span></label>
                                 <textarea id="s-monetag-script" rows="4" class="inp resize-none font-mono text-xs" placeholder='<script src="https://..." data-zone="12345678" async></script>'></textarea>
                             </div>
                             <div>
-                                <label class="field-label">Ad Show Function <span class="text-white/30 text-xs">(যে function call করলে ad দেখাবে)</span></label>
+                                <label class="field-label">Ad Show Function <span class="text-white/30 text-xs">(the function call that displays the ad)</span></label>
                                 <input type="text" id="s-monetag-fn" class="inp font-mono" placeholder="show_9630873()">
                             </div>
                         </div>
@@ -366,7 +417,7 @@
                     <!-- Custom Head Code -->
                     <div class="glass p-5">
                         <h3 class="font-bold text-yellow-400 mb-1">🔧 Custom Head Code</h3>
-                        <p class="text-white/50 text-xs mb-3">যেকোনো analytics, tracking বা অন্য script এখানে paste করুন — User App-এ auto-inject হবে।</p>
+                        <p class="text-white/50 text-xs mb-3">Paste any analytics, tracking or other script here — it will be auto-injected into the User App.</p>
                         <textarea id="s-custom-head" rows="5" class="inp resize-none font-mono text-xs" placeholder="<!-- Google Analytics, Facebook Pixel, etc. -->&#10;<script>...</script>"></textarea>
                         <button onclick="saveAdSettings()" class="btn-primary px-6 py-2.5 rounded-xl mt-3">💾 Save</button>
                     </div>
@@ -494,14 +545,14 @@
         const email = document.getElementById('setup-adminEmail').value.trim();
         const fbPass = document.getElementById('setup-adminFbPass').value;
         const uidStr = document.getElementById('setup-adminUid').value.trim();
-        if (!email || !fbPass) return showAlert('Firebase Admin email ও password দিন।');
-        if (!uidStr) return showAlert('Admin UID দিন।');
+        if (!email || !fbPass) return showAlert('Please enter Firebase Admin email and password.');
+        if (!uidStr) return showAlert('Please enter Admin UID.');
         const cfg = getConfig() || {};
         cfg.adminEmail = email;
         try { cfg.adminFbPass = btoa(unescape(encodeURIComponent(fbPass))); } catch(e) { cfg.adminFbPass = btoa(fbPass); }
         cfg.adminUids = uidStr.split(',').map(s => s.trim()).filter(Boolean);
         saveConfig(cfg);
-        showAlert('✅ Setup সম্পন্ন! এখন Login করুন।');
+        showAlert('✅ Setup complete! Please log in now.');
         setTimeout(() => {
             if (!tryInitFirebase()) return showAlert('Firebase config error. Please check your values.');
             prefillSettings();
@@ -541,7 +592,7 @@
                         loadDashboard();
                     })
                     .catch(err => {
-                        showAlert('Firebase login failed: ' + err.message + '\n\nSettings → Firebase Config-এ email/password চেক করুন।');
+                        showAlert('Firebase login failed: ' + err.message + '\n\nCheck your email/password in Settings → Firebase Config.');
                     });
             } else {
                 sessionStorage.setItem('rncch_logged_in', '1');
@@ -554,7 +605,7 @@
     };
 
     window.doReset = function() {
-        if (confirm('Setup সম্পূর্ণ রিসেট হবে — username, password, Firebase config সব মুছে যাবে। নিশ্চিত?')) {
+        if (confirm('This will reset everything — username, password, Firebase config will be erased. Are you sure?')) {
             localStorage.removeItem(LS_KEY);
             sessionStorage.removeItem('rncch_logged_in');
             showSection('setup-section');
@@ -577,7 +628,7 @@
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId)?.classList.add('active');
         document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
-        const idx = ['pg-dashboard','pg-users','pg-withdrawals','pg-broadcast','pg-settings'];
+        const idx = ['pg-dashboard','pg-users','pg-withdrawals','pg-bin','pg-coupons','pg-broadcast','pg-settings'];
         const navEls = document.querySelectorAll('.nav-link');
         const i = idx.indexOf(pageId);
         if (i >= 0 && navEls[i]) navEls[i].classList.add('active');
@@ -614,6 +665,8 @@
         });
         loadUsers();
         loadWithdrawals();
+        loadBinRequests();
+        loadCoupons();
     }
 
     function loadUsers() {
@@ -649,11 +702,18 @@
     function loadWithdrawals() {
         if (!db) return;
         try {
-            onSnapshot(query(collection(db, 'withdrawals'), where('status','==','pending'), orderBy('requestedAt','desc')), snap => {
+            // Note: NO orderBy here — composite (where + orderBy) requires a Firestore index
+            // that isn't always created. We sort client-side instead so requests always show.
+            onSnapshot(query(collection(db, 'withdrawals'), where('status','==','pending')), snap => {
                 const tbody = document.getElementById('withdrawals-tbody');
                 tbody.innerHTML = '';
                 if (snap.empty) { tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500 py-10">No pending requests</td></tr>'; return; }
-                snap.forEach(d => {
+                const docs = snap.docs.slice().sort((a,b) => {
+                    const ta = a.data().requestedAt?.toMillis?.() || 0;
+                    const tb = b.data().requestedAt?.toMillis?.() || 0;
+                    return tb - ta;
+                });
+                docs.forEach(d => {
                     const r = d.data();
                     const date = r.requestedAt?.toDate ? r.requestedAt.toDate().toLocaleString() : 'N/A';
                     const qrHtml = r.qrCodeUrl ? `<img class="qr-img" src="${r.qrCodeUrl}" onclick="openQR('${r.qrCodeUrl}')">` : '<span class="text-gray-500 text-xs">N/A</span>';
@@ -664,15 +724,138 @@
                         <td class="text-sm">${r.accountName||'N/A'}</td>
                         <td>${qrHtml}</td>
                         <td class="text-xs text-gray-400">${date}</td>
-                        <td class="flex items-center gap-2">
+                        <td class="flex items-center gap-2 flex-wrap">
                             <button class="btn-success px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="approveW('${d.id}','${r.userId}')">Approve</button>
                             <button class="btn-danger px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="openRejectModal('${d.id}','${r.userId}',${r.amount})">Reject</button>
+                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-500/10 text-gray-300 border border-gray-500/20 hover:bg-gray-500/20 transition" onclick="moveToBin('${d.id}')">🗑️ Bin</button>
                         </td>
+                    </tr>`;
+                });
+            }, err => {
+                console.error('Withdrawals listener error:', err);
+                document.getElementById('withdrawals-tbody').innerHTML =
+                    `<tr><td colspan="7" class="text-center text-red-400 py-10">Error loading: ${err.message}</td></tr>`;
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    // ── Bin Requests ──
+    function loadBinRequests() {
+        if (!db) return;
+        try {
+            onSnapshot(query(collection(db, 'withdrawals'), where('status','==','binned')), snap => {
+                const tbody = document.getElementById('bin-tbody');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+                document.getElementById('stat-binned').textContent = snap.size;
+                if (snap.empty) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-10">Bin is empty</td></tr>';
+                    return;
+                }
+                const docs = snap.docs.slice().sort((a,b) => {
+                    const ta = a.data().binnedAt?.toMillis?.() || 0;
+                    const tb = b.data().binnedAt?.toMillis?.() || 0;
+                    return tb - ta;
+                });
+                docs.forEach(d => {
+                    const r = d.data();
+                    const date = r.binnedAt?.toDate ? r.binnedAt.toDate().toLocaleString() : 'N/A';
+                    const qrHtml = r.qrCodeUrl ? `<img class="qr-img" src="${r.qrCodeUrl}" onclick="openQR('${r.qrCodeUrl}')">` : '<span class="text-gray-500 text-xs">N/A</span>';
+                    tbody.innerHTML += `<tr>
+                        <td><p class="font-medium">${r.userName||'N/A'}</p><p class="text-xs text-gray-500">${r.userEmail||''}</p></td>
+                        <td class="font-bold text-yellow-400">${r.amount}</td>
+                        <td class="text-sm text-gray-300">${r.method||''}</td>
+                        <td>${qrHtml}</td>
+                        <td class="text-xs text-gray-400">${date}</td>
+                        <td class="flex items-center gap-2">
+                            <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition" onclick="returnFromBin('${d.id}')">↩️ Return</button>
+                        </td>
+                    </tr>`;
+                });
+            }, err => console.error('Bin listener error:', err));
+        } catch(e) { console.error(e); }
+    }
+
+    window.moveToBin = function(reqId) {
+        showConfirm('Move this request to Bin?', async () => {
+            try { await updateDoc(doc(db,'withdrawals',reqId),{ status:'binned', binnedAt: serverTimestamp() }); showAlert('Moved to Bin.'); }
+            catch(e) { showAlert(e.message); }
+        });
+    };
+
+    window.returnFromBin = function(reqId) {
+        showConfirm('Return this request back to Pending?', async () => {
+            try { await updateDoc(doc(db,'withdrawals',reqId),{ status:'pending', binnedAt: null }); showAlert('Returned to pending.'); }
+            catch(e) { showAlert(e.message); }
+        });
+    };
+
+    // ── Coupons ──
+    function loadCoupons() {
+        if (!db) return;
+        try {
+            onSnapshot(collection(db, 'coupons'), snap => {
+                const tbody = document.getElementById('coupons-tbody');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-10">No coupons yet</td></tr>'; return; }
+                const docs = snap.docs.slice().sort((a,b) => {
+                    const ta = a.data().createdAt?.toMillis?.() || 0;
+                    const tb = b.data().createdAt?.toMillis?.() || 0;
+                    return tb - ta;
+                });
+                docs.forEach(d => {
+                    const c = d.data();
+                    const used = c.usedCount || 0;
+                    const total = c.totalUses || 0;
+                    const exhausted = used >= total;
+                    const date = c.createdAt?.toDate ? c.createdAt.toDate().toLocaleDateString() : 'N/A';
+                    tbody.innerHTML += `<tr>
+                        <td class="font-bold text-yellow-400">${c.code||'—'}</td>
+                        <td>${c.coinsPerUser||0}</td>
+                        <td>${used} / ${total}</td>
+                        <td>${exhausted ? '<span class="badge-red">Exhausted</span>' : '<span class="badge-green">Active</span>'}</td>
+                        <td class="text-xs text-gray-400">${date}</td>
+                        <td><button class="btn-danger px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="deleteCoupon('${d.id}','${c.code}')">Delete</button></td>
                     </tr>`;
                 });
             });
         } catch(e) { console.error(e); }
     }
+
+    window.createCoupon = async function() {
+        const codeInput = document.getElementById('cp-code').value.trim().toUpperCase();
+        const uses = parseInt(document.getElementById('cp-uses').value);
+        const coins = parseInt(document.getElementById('cp-coins').value);
+        if (!uses || uses <= 0) return showAlert('Total uses must be a positive number.');
+        if (!coins || coins <= 0) return showAlert('Coins per user must be a positive number.');
+
+        let code = codeInput;
+        if (!code) {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            code = '';
+            for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        }
+
+        try {
+            await addDoc(collection(db, 'coupons'), {
+                code, totalUses: uses, coinsPerUser: coins,
+                usedCount: 0, usedBy: [],
+                createdAt: serverTimestamp(), createdBy: 'browser-admin'
+            });
+            document.getElementById('cp-code').value = '';
+            document.getElementById('cp-uses').value = '';
+            document.getElementById('cp-coins').value = '';
+            showAlert(`✅ Coupon ${code} created!`);
+        } catch(e) { showAlert('Error: ' + e.message); }
+    };
+
+    window.deleteCoupon = function(id, code) {
+        showConfirm(`Delete coupon ${code}?`, async () => {
+            try { await updateDoc(doc(db,'coupons',id),{ deleted: true, totalUses: 0 }); showAlert('Coupon disabled.'); }
+            catch(e) { showAlert(e.message); }
+        });
+    };
 
     // ---- Actions ----
     window.openQR = url => { document.getElementById('qr-lb-img').src = url; document.getElementById('qr-lb').classList.add('open'); };
@@ -782,6 +965,10 @@
                 document.getElementById('s-coin-value-inr').value = c.coinValueInr||10;
                 document.getElementById('s-payment-methods').value = (c.paymentMethods||[]).join(', ');
                 document.getElementById('s-withdrawal-options').value = (c.withdrawalOptions||[]).join(', ');
+                // Bot button settings
+                document.getElementById('s-channel-link').value = c.channelLink || '';
+                document.getElementById('s-help-link').value    = c.helpLink    || '';
+                document.getElementById('s-policy-text').value  = c.policyText  || '';
                 // Ad settings
                 document.getElementById('s-monetag-script').value = c.monetagScript || '';
                 document.getElementById('s-monetag-fn').value      = c.monetagAdFn   || '';
@@ -839,7 +1026,10 @@
             coinValueCoins: +document.getElementById('s-coin-value-coins').value||1000,
             coinValueInr: +document.getElementById('s-coin-value-inr').value||10,
             paymentMethods: document.getElementById('s-payment-methods').value.split(',').map(s=>s.trim()).filter(Boolean),
-            withdrawalOptions: document.getElementById('s-withdrawal-options').value.split(',').map(s=>Number(s.trim())).filter(n=>n>0)
+            withdrawalOptions: document.getElementById('s-withdrawal-options').value.split(',').map(s=>Number(s.trim())).filter(n=>n>0),
+            channelLink: document.getElementById('s-channel-link').value.trim(),
+            helpLink:    document.getElementById('s-help-link').value.trim(),
+            policyText:  document.getElementById('s-policy-text').value.trim()
         };
         try { await setDoc(doc(db,'config','main'),data,{merge:true}); showAlert('App settings saved!'); }
         catch(e) { showAlert('Error: '+e.message); }
@@ -852,7 +1042,7 @@
         const customHeadCode = document.getElementById('s-custom-head').value.trim();
         try {
             await setDoc(doc(db,'config','main'), { monetagScript, monetagAdFn, customHeadCode }, { merge: true });
-            showAlert('✅ Ad settings saved! User App-এ auto-load হবে।');
+            showAlert('✅ Ad settings saved! Will auto-load in the User App.');
         } catch(e) { showAlert('Error: '+e.message); }
     };
 
