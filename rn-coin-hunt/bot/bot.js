@@ -9,21 +9,48 @@ const path    = require('path');
 const fs      = require('fs');
 
 // ── Config ────────────────────────────────────────────────────────
-const BOT_TOKEN   = process.env.BOT_TOKEN  || '';
-const ADMIN_IDS   = (process.env.ADMIN_TELEGRAM_IDS || '1414414216,7728185213')
+const BOT_TOKEN    = process.env.BOT_TOKEN  || '';
+const ADMIN_IDS    = (process.env.ADMIN_TELEGRAM_IDS || '1414414216,7728185213')
                         .split(',').map(s => s.trim());
 const MINI_APP_URL = process.env.MINI_APP_URL || 'https://your-app.onrender.com/user-app/';
 const SERVER_URL   = process.env.SERVER_URL   || 'https://your-app.onrender.com';
+const BOT_USERNAME = process.env.BOT_USERNAME || '';
 const PORT         = process.env.PORT         || 3001;
 
 // ── Firebase Admin ────────────────────────────────────────────────
+let firebaseReady = false;
 try {
-    const svc = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
-    initializeApp({ credential: cert(svc) });
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT || '';
+    if (raw && raw.trim().startsWith('{')) {
+        initializeApp({ credential: cert(JSON.parse(raw)) });
+        firebaseReady = true;
+    } else {
+        console.warn('⚠️  FIREBASE_SERVICE_ACCOUNT not set — Firebase features disabled.');
+    }
 } catch (e) { console.error('Firebase init error:', e.message); }
-const db = getFirestore();
+const db = firebaseReady ? getFirestore() : null;
 
 // ── Bot ───────────────────────────────────────────────────────────
+if (!BOT_TOKEN) {
+    console.error('');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('❌ BOT_TOKEN environment variable is missing!');
+    console.error('');
+    console.error('To activate the Telegram bot:');
+    console.error('  1. Go to @BotFather on Telegram → /newbot or /mybots');
+    console.error('  2. Copy the bot token');
+    console.error('  3. Add it as a secret named: BOT_TOKEN');
+    console.error('  4. Restart this workflow');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('');
+    // Keep the process alive so the workflow stays "running" and the
+    // user can add the secret without the workflow being marked failed.
+    const app = express();
+    app.get('/', (_, res) => res.send('🤖 Bot is waiting for BOT_TOKEN secret.'));
+    app.listen(PORT, () => console.log(`Bot placeholder server on port ${PORT}`));
+    return;
+}
+
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
 // QR uploads directory
@@ -35,18 +62,34 @@ const wState       = {};  // userId  → { step, data }   (user withdrawal flow)
 const adminState   = {};  // adminId → { step, reqId, userId, amount }
 const adminSkipped = {};  // adminId → [reqId, ...]      (for skip navigation)
 
-// ── Keyboards ─────────────────────────────────────────────────────
-const MAIN_MENU = {
-    reply_markup: {
-        keyboard: [
-            [{ text: '🪙 Open App', web_app: { url: MINI_APP_URL } }],
-            [{ text: '💰 My Balance' }, { text: '📤 Withdraw' }],
-            [{ text: '📊 My Stats'  }, { text: '🆘 Help'     }]
-        ],
-        resize_keyboard: true,
-        persistent: true
-    }
-};
+// ── Bot Commands menu (left "Menu" button in the chat input) ──────
+bot.setMyCommands([
+    { command: 'start',    description: '🏠 Main Menu' },
+    { command: 'menu',     description: '🏠 Show Main Menu' },
+    { command: 'balance',  description: '💰 Check balance' },
+    { command: 'withdraw', description: '📤 Withdraw coins' },
+    { command: 'referral', description: '👥 My referral link' },
+    { command: 'help',     description: '🆘 Help & support' },
+]).catch(e => console.error('setMyCommands error:', e.message));
+
+// Set the menu button to open the Mini App directly
+bot.setChatMenuButton({
+    menu_button: { type: 'web_app', text: '🪙 Open App', web_app: { url: MINI_APP_URL } }
+}).catch(e => console.error('setChatMenuButton error:', e.message));
+
+// ── Reply keyboard (small persistent keyboard, just Open App + Menu) ──
+function replyKeyboard() {
+    return {
+        reply_markup: {
+            keyboard: [
+                [{ text: '🪙 Open App', web_app: { url: MINI_APP_URL } }],
+                [{ text: '🏠 Main Menu' }]
+            ],
+            resize_keyboard: true,
+            persistent: true
+        }
+    };
+}
 
 const CANCEL_KB = {
     reply_markup: {
@@ -55,24 +98,78 @@ const CANCEL_KB = {
     }
 };
 
+// ── Inline Main Menu (3-column grid like the screenshot) ──────────
+function mainMenuInline(appUrl) {
+    return {
+        inline_keyboard: [
+            [
+                { text: '📋 Tasks',        web_app: { url: appUrl } },
+                { text: '💰 Balance',      callback_data: 'menu|balance' },
+            ],
+            [
+                { text: '💬 Help',         callback_data: 'menu|help' },
+                { text: '👥 Referral',     callback_data: 'menu|referral' },
+            ],
+            [
+                { text: '🎟️ Free Coupon',  callback_data: 'menu|freecoupon' },
+                { text: '🎁 Claim Coupon', callback_data: 'menu|claimcoupon' },
+            ],
+            [
+                { text: '🪪 My ID',        callback_data: 'menu|myid' },
+                { text: '📜 Policy',       callback_data: 'menu|policy' },
+            ],
+            [
+                { text: '📅 Check In',     web_app: { url: appUrl } },
+            ],
+            [
+                { text: '📤 Withdraw',     callback_data: 'menu|withdraw' },
+            ]
+        ]
+    };
+}
+
+async function sendMainMenu(chatId, userName, startParam) {
+    const appUrl = startParam ? `${MINI_APP_URL}?start=${startParam}` : MINI_APP_URL;
+
+    if (userName) {
+        await bot.sendMessage(chatId,
+            `🎉 *Welcome ${userName}!*\n\n` +
+            `Earn coins by completing tasks and withdraw anytime.`,
+            { parse_mode: 'Markdown' }
+        );
+    }
+
+    await bot.sendMessage(chatId, `🏠 *Main Menu*`, {
+        parse_mode: 'Markdown',
+        reply_markup: mainMenuInline(appUrl)
+    });
+}
+
 // ─────────────────────────────────────────────────────────────────
 // /start
 // ─────────────────────────────────────────────────────────────────
 bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const param  = (match[1] || '').trim().replace(/^\//, '');
-    const appUrl = param ? `${MINI_APP_URL}?start=${param}` : MINI_APP_URL;
+    const name   = msg.from.first_name || msg.from.username || 'there';
 
-    const menu = { reply_markup: { ...MAIN_MENU.reply_markup } };
-    menu.reply_markup.keyboard[0][0].web_app.url = appUrl;
-
-    bot.sendMessage(chatId,
-        `👋 *RN Coin Hunt-এ স্বাগতম!*\n\n` +
-        `🪙 Task করুন → Coin আয় করুন → Withdraw করুন\n\n` +
-        `নিচের মেনু থেকে যেকোনো অপশন বেছে নিন 👇`,
-        { parse_mode: 'Markdown', ...menu }
+    // Ensure the persistent reply keyboard is visible
+    await bot.sendMessage(chatId,
+        `👋 Hi *${name}*!`,
+        { parse_mode: 'Markdown', ...replyKeyboard() }
     );
+
+    await sendMainMenu(chatId, name, param);
 });
+
+// ─────────────────────────────────────────────────────────────────
+// /menu, /balance, /withdraw, /referral, /help — quick commands
+// ─────────────────────────────────────────────────────────────────
+bot.onText(/\/menu$/, (msg) => sendMainMenu(msg.chat.id, msg.from.first_name, ''));
+bot.onText(/\/balance$/, (msg) => showBalance(msg.chat.id, String(msg.from.id)));
+bot.onText(/\/withdraw$/, (msg) => startWithdraw(msg.chat.id, String(msg.from.id)));
+bot.onText(/\/referral$/, (msg) => showReferral(msg.chat.id, String(msg.from.id)));
+bot.onText(/\/help$/, (msg) => showHelp(msg.chat.id));
 
 // ─────────────────────────────────────────────────────────────────
 // Single message handler
@@ -83,13 +180,14 @@ bot.on('message', async (msg) => {
     const text   = msg.text  || '';
     const photo  = msg.photo;
 
-    if (text.startsWith('/start')) return; // handled above
+    if (text.startsWith('/')) return; // commands handled by onText above
 
     // ── Admin: waiting for reject reason ──────────────────────────
     if (adminState[userId]?.step === 'await_reject_reason') {
         if (text === '❌ Cancel') {
             delete adminState[userId];
             bot.sendMessage(chatId, 'বাতিল করা হয়েছে।', { reply_markup: { remove_keyboard: true } });
+            setTimeout(() => sendMainMenu(chatId, msg.from.first_name, ''), 400);
         } else {
             await doReject(chatId, userId, text);
         }
@@ -102,27 +200,12 @@ bot.on('message', async (msg) => {
         return;
     }
 
-    // ── /admin command ─────────────────────────────────────────────
-    if (text === '/admin') {
-        if (!ADMIN_IDS.includes(userId)) {
-            bot.sendMessage(chatId, '⛔ আপনি admin নন।');
-            return;
-        }
-        adminSkipped[userId] = [];
-        await showNextRequest(chatId, userId);
-        return;
-    }
-
-    // ── Main menu buttons ──────────────────────────────────────────
-    if (text === '💰 My Balance')   { await showBalance(chatId, userId);    return; }
-    if (text === '📤 Withdraw')     { await startWithdraw(chatId, userId);  return; }
-    if (text === '📊 My Stats')     { await showStats(chatId, userId);      return; }
-    if (text === '🆘 Help')         { showHelp(chatId);                     return; }
-    if (text === '🔙 Back to Menu') { bot.sendMessage(chatId, '🏠 Main Menu', MAIN_MENU); return; }
+    // ── Reply-keyboard buttons ────────────────────────────────────
+    if (text === '🏠 Main Menu') { await sendMainMenu(chatId, msg.from.first_name, ''); return; }
 });
 
 // ─────────────────────────────────────────────────────────────────
-// Inline button callback handler  (single handler — all cases)
+// Inline button callback handler
 // ─────────────────────────────────────────────────────────────────
 bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id;
@@ -130,7 +213,23 @@ bot.on('callback_query', async (query) => {
     const msgId  = query.message.message_id;
     const data   = query.data || '';
 
-    bot.answerCallbackQuery(query.id);
+    bot.answerCallbackQuery(query.id).catch(() => {});
+
+    // ── Main Menu actions ──
+    if (data.startsWith('menu|')) {
+        const action = data.split('|')[1];
+        switch (action) {
+            case 'balance':      await showBalance(chatId, userId); break;
+            case 'withdraw':     await startWithdraw(chatId, userId); break;
+            case 'help':         showHelp(chatId); break;
+            case 'referral':     await showReferral(chatId, userId); break;
+            case 'myid':         await showMyId(chatId, userId, query.from); break;
+            case 'policy':       showPolicy(chatId); break;
+            case 'freecoupon':   showFreeCoupon(chatId); break;
+            case 'claimcoupon':  showClaimCoupon(chatId); break;
+        }
+        return;
+    }
 
     // ── User: payment method selection ──
     if (data.startsWith('wd|method|')) {
@@ -182,9 +281,24 @@ bot.on('callback_query', async (query) => {
 });
 
 // ─────────────────────────────────────────────────────────────────
+// /admin — entry
+// ─────────────────────────────────────────────────────────────────
+bot.onText(/^\/admin$/, async (msg) => {
+    const chatId = msg.chat.id;
+    const userId = String(msg.from.id);
+    if (!ADMIN_IDS.includes(userId)) {
+        bot.sendMessage(chatId, '⛔ আপনি admin নন।');
+        return;
+    }
+    adminSkipped[userId] = [];
+    await showNextRequest(chatId, userId);
+});
+
+// ─────────────────────────────────────────────────────────────────
 // My Balance
 // ─────────────────────────────────────────────────────────────────
 async function showBalance(chatId, userId) {
+    if (!db) return bot.sendMessage(chatId, '⚠️ Firebase not configured.');
     try {
         const user = await getUserByTgId(userId);
         if (!user) return sendLinkAccount(chatId);
@@ -209,6 +323,7 @@ async function showBalance(chatId, userId) {
 // Withdraw — Step 0: Show amount options
 // ─────────────────────────────────────────────────────────────────
 async function startWithdraw(chatId, userId) {
+    if (!db) return bot.sendMessage(chatId, '⚠️ Firebase not configured.');
     try {
         const user = await getUserByTgId(userId);
         if (!user) return sendLinkAccount(chatId);
@@ -244,8 +359,6 @@ async function startWithdraw(chatId, userId) {
             if (row.length === 3 || i === opts.length - 1) { rows.push(row); row = []; }
         });
 
-        // Method selection will come after amount — store method in flow later
-        // For now, store available methods and start flow
         wState[userId] = { step: 'selecting_amount', data: { methods, userId: user.id, userName: user.name, userEmail: user.email, balance: bal } };
 
         bot.sendMessage(chatId,
@@ -277,7 +390,6 @@ async function confirmAmountSelected(chatId, userId, amount) {
     const methods = state.data.methods || [];
 
     if (methods.length === 1) {
-        // Only one method — skip selection
         state.data.method = methods[0];
         state.step = 'ask_qr';
         bot.sendMessage(chatId,
@@ -285,7 +397,6 @@ async function confirmAmountSelected(chatId, userId, amount) {
             { parse_mode: 'Markdown', ...CANCEL_KB }
         );
     } else {
-        // Multiple methods — show as inline keyboard
         state.step = 'selecting_method';
         const methodRows = methods.map(m => [{ text: `💳 ${m}`, callback_data: `wd|method|${m}` }]);
         bot.sendMessage(chatId,
@@ -309,11 +420,10 @@ async function handleWithdrawFlow(msg) {
     if (text === '❌ Cancel') {
         delete wState[userId];
         bot.sendMessage(chatId, '❌ Withdrawal বাতিল।', { reply_markup: { remove_keyboard: true } });
-        setTimeout(() => bot.sendMessage(chatId, '🏠 Main Menu', MAIN_MENU), 500);
+        setTimeout(() => sendMainMenu(chatId, msg.from.first_name, ''), 400);
         return;
     }
 
-    // ── QR photo step ──────────────────────────────────────────────
     if (state.step === 'ask_qr') {
         if (!photo) { bot.sendMessage(chatId, '📸 QR Code-এর ছবি পাঠান।'); return; }
         try {
@@ -333,7 +443,6 @@ async function handleWithdrawFlow(msg) {
         return;
     }
 
-    // ── Account name step ──────────────────────────────────────────
     if (state.step === 'ask_account_name') {
         if (text.trim().length < 2) { bot.sendMessage(chatId, '❌ সঠিক নাম লিখুন।'); return; }
         state.data.accountName = text.trim();
@@ -348,18 +457,15 @@ async function handleWithdrawFlow(msg) {
 async function submitWithdrawal(chatId, userId) {
     const state = wState[userId];
     try {
-        // Final balance check
         const user = await getUserByTgId(userId);
         if (!user || (user.balance || 0) < state.data.amount) {
             bot.sendMessage(chatId, '❌ Balance অপর্যাপ্ত।');
             delete wState[userId];
             return;
         }
-        // Deduct coins
         await db.collection('users').doc(state.data.userId).update({
             balance: FieldValue.increment(-state.data.amount)
         });
-        // Save request
         const ref = await db.collection('withdrawals').add({
             userId:      state.data.userId,
             userName:    state.data.userName,
@@ -372,7 +478,6 @@ async function submitWithdrawal(chatId, userId) {
             status:      'pending',
             requestedAt: FieldValue.serverTimestamp()
         });
-        // Notify admins
         const caption =
             `🔔 *New Withdrawal Request!*\n\n` +
             `👤 Name: ${state.data.userName}\n` +
@@ -397,7 +502,7 @@ async function submitWithdrawal(chatId, userId) {
             `24-48 ঘণ্টায় Process হবে। App-এ Notification পাবেন।`,
             { parse_mode: 'Markdown', reply_markup: { remove_keyboard: true } }
         );
-        setTimeout(() => bot.sendMessage(chatId, '🏠 Main Menu', MAIN_MENU), 800);
+        setTimeout(() => sendMainMenu(chatId, '', ''), 800);
     } catch (e) {
         console.error(e);
         bot.sendMessage(chatId, '❌ Submit error. আবার চেষ্টা করুন।');
@@ -408,6 +513,7 @@ async function submitWithdrawal(chatId, userId) {
 // /admin — Show next pending request
 // ─────────────────────────────────────────────────────────────────
 async function showNextRequest(chatId, adminId) {
+    if (!db) return bot.sendMessage(chatId, '⚠️ Firebase not configured.');
     try {
         const skipped = adminSkipped[adminId] || [];
         const snap = await db.collection('withdrawals')
@@ -460,7 +566,6 @@ async function showNextRequest(chatId, adminId) {
                 });
             }
         } catch (e) {
-            // Photo URL broken — send text
             await bot.sendMessage(chatId, caption, {
                 parse_mode: 'Markdown', reply_markup: keyboard
             });
@@ -485,7 +590,6 @@ async function doAccept(chatId, adminId, reqId) {
         await db.collection('withdrawals').doc(reqId).update({
             status: 'approved', processedAt: FieldValue.serverTimestamp()
         });
-        // Notify user in Firebase
         await db.collection('user_notifications').add({
             userId:    r.userId,
             type:      'approved',
@@ -493,18 +597,16 @@ async function doAccept(chatId, adminId, reqId) {
             message:   `আপনার ${r.amount} Coins Withdrawal Approve হয়েছে। Payment পাঠানো হচ্ছে।`,
             createdAt: FieldValue.serverTimestamp()
         });
-        // Notify user in bot
         try {
             await bot.sendMessage(r.telegramId,
                 `✅ *আপনার Withdrawal Approved!*\n\n` +
                 `💳 Method: ${r.method}\n🪙 Amount: *${r.amount} Coins*\n👤 Account: ${r.accountName}\n\n` +
                 `Payment process শুরু হয়েছে।`,
-                { parse_mode: 'Markdown', ...MAIN_MENU }
+                { parse_mode: 'Markdown' }
             );
         } catch (_) {}
 
         bot.sendMessage(chatId, `✅ *Approved!* ${r.userName}-এর ${r.amount} Coins request accept করা হয়েছে।`, { parse_mode: 'Markdown' });
-        // Show next
         if (!adminSkipped[adminId]) adminSkipped[adminId] = [];
         adminSkipped[adminId].push(reqId);
         setTimeout(() => showNextRequest(chatId, adminId), 1000);
@@ -533,11 +635,9 @@ async function doReject(chatId, adminId, reason) {
         await db.collection('withdrawals').doc(reqId).update({
             status: 'rejected', reason, processedAt: FieldValue.serverTimestamp()
         });
-        // Refund coins
         await db.collection('users').doc(r.userId).update({
             balance: FieldValue.increment(r.amount)
         });
-        // Notify user in Firebase
         await db.collection('user_notifications').add({
             userId:    r.userId,
             type:      'rejected',
@@ -545,14 +645,13 @@ async function doReject(chatId, adminId, reason) {
             message:   `আপনার ${r.amount} Coins Withdrawal Reject হয়েছে। কারণ: ${reason}। Coins ফেরত দেওয়া হয়েছে।`,
             createdAt: FieldValue.serverTimestamp()
         });
-        // Notify user in bot
         try {
             await bot.sendMessage(r.telegramId,
                 `❌ *Withdrawal Rejected*\n\n` +
                 `🪙 Amount: *${r.amount} Coins*\n` +
                 `❓ কারণ: ${reason}\n\n` +
                 `Coins আপনার account-এ ফেরত দেওয়া হয়েছে।`,
-                { parse_mode: 'Markdown', ...MAIN_MENU }
+                { parse_mode: 'Markdown' }
             );
         } catch (_) {}
 
@@ -560,7 +659,6 @@ async function doReject(chatId, adminId, reason) {
             `❌ *Rejected!* ${r.userName}-এর request reject করা হয়েছে।\nCoins refund হয়েছে।`,
             { parse_mode: 'Markdown', reply_markup: { remove_keyboard: true } }
         );
-        // Show next
         if (!adminSkipped[adminId]) adminSkipped[adminId] = [];
         adminSkipped[adminId].push(reqId);
         setTimeout(() => showNextRequest(chatId, adminId), 1000);
@@ -571,25 +669,92 @@ async function doReject(chatId, adminId, reason) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Stats
+// Referral
 // ─────────────────────────────────────────────────────────────────
-async function showStats(chatId, userId) {
+async function showReferral(chatId, userId) {
+    if (!db) return bot.sendMessage(chatId, '⚠️ Firebase not configured.');
     try {
         const user = await getUserByTgId(userId);
         if (!user) return sendLinkAccount(chatId);
-        const snap = await db.collection('withdrawals').where('userId', '==', user.id).get();
-        const approved = snap.docs.filter(d => d.data().status === 'approved').reduce((s, d) => s + d.data().amount, 0);
-        const pending  = snap.docs.filter(d => d.data().status === 'pending').length;
+        const code = user.referralCode || '—';
+        const link = BOT_USERNAME
+            ? `https://t.me/${BOT_USERNAME}?start=${code}`
+            : `${MINI_APP_URL}?start=${code}`;
         bot.sendMessage(chatId,
-            `📊 *Your Stats*\n\n` +
-            `👤 Name: ${user.name}\n` +
-            `🪙 Balance: *${user.balance || 0}* Coins\n` +
-            `✅ Total Withdrawn: *${approved}* Coins\n` +
-            `⏳ Pending: *${pending}*\n` +
-            `📋 Total Requests: *${snap.size}*`,
-            { parse_mode: 'Markdown' }
+            `👥 *Refer & Earn*\n\n` +
+            `Your Code: \`${code}\`\n\n` +
+            `Share this link with friends:\n${link}\n\n` +
+            `যখন কেউ এই link দিয়ে join করে আপনি bonus পাবেন!`,
+            { parse_mode: 'Markdown', disable_web_page_preview: true }
         );
-    } catch (e) { bot.sendMessage(chatId, 'Error loading stats.'); }
+    } catch (e) { console.error(e); bot.sendMessage(chatId, 'Error loading referral.'); }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// My ID
+// ─────────────────────────────────────────────────────────────────
+async function showMyId(chatId, userId, from) {
+    let accountInfo = '';
+    if (db) {
+        try {
+            const user = await getUserByTgId(userId);
+            if (user) {
+                accountInfo =
+                    `\n\n🔗 *Linked Account*\n` +
+                    `Name: *${user.name || '—'}*\n` +
+                    `Email: ${user.email || '—'}\n` +
+                    `Balance: *${user.balance || 0}* Coins`;
+            } else {
+                accountInfo = `\n\n⚠️ App account এখনো link হয়নি।\n"🪙 Open App" দিয়ে login করুন।`;
+            }
+        } catch (_) {}
+    }
+    bot.sendMessage(chatId,
+        `🪪 *Your Telegram ID*\n\n` +
+        `🆔 ID: \`${userId}\`\n` +
+        `👤 Name: ${from.first_name || ''} ${from.last_name || ''}\n` +
+        (from.username ? `🔖 Username: @${from.username}\n` : '') +
+        accountInfo,
+        { parse_mode: 'Markdown' }
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Policy
+// ─────────────────────────────────────────────────────────────────
+function showPolicy(chatId) {
+    bot.sendMessage(chatId,
+        `📜 *App Policy*\n\n` +
+        `*1.* প্রতিদিন একবার Check-in করা যাবে।\n` +
+        `*2.* Multiple account তৈরি করলে ban হবে।\n` +
+        `*3.* Fake referral / bot use করলে account ban হবে।\n` +
+        `*4.* Withdrawal 24-48 ঘণ্টায় process হয়।\n` +
+        `*5.* QR Code এবং Account নাম সঠিক দিতে হবে।\n` +
+        `*6.* ভুল information দিলে coin refund হবে না।\n\n` +
+        `Admin-এর সিদ্ধান্ত চূড়ান্ত।`,
+        { parse_mode: 'Markdown' }
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Coupons (placeholders — wire up when coupon system is added)
+// ─────────────────────────────────────────────────────────────────
+function showFreeCoupon(chatId) {
+    bot.sendMessage(chatId,
+        `🎟️ *Free Coupon*\n\n` +
+        `এখনো কোনো free coupon available নেই।\n` +
+        `Admin নতুন coupon publish করলে এখানে দেখাবে।`,
+        { parse_mode: 'Markdown' }
+    );
+}
+
+function showClaimCoupon(chatId) {
+    bot.sendMessage(chatId,
+        `🎁 *Claim a Coupon Code*\n\n` +
+        `এই feature টি শীঘ্রই আসছে।\n` +
+        `Coupon code পেলে App-এর Wallet section-এ গিয়ে redeem করতে পারবেন।`,
+        { parse_mode: 'Markdown' }
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -601,9 +766,11 @@ function showHelp(chatId) {
         `*🪙 Coin আয় করুন (App-এ):*\n` +
         `• প্রতিদিন Check-in\n• Video Ads দেখুন\n• Math Quiz সমাধান করুন\n• বন্ধুদের Refer করুন\n\n` +
         `*📤 Withdraw করুন:*\n` +
-        `"📤 Withdraw" বাটন চাপুন\n→ Amount বেছে নিন\n→ QR Code পাঠান\n→ Account নাম দিন\n→ Request Submit!\n\n` +
+        `Main Menu থেকে "📤 Withdraw" চাপুন\n→ Amount বেছে নিন\n→ QR Code পাঠান\n→ Account নাম দিন\n→ Request Submit!\n\n` +
+        `*Bot Commands:*\n` +
+        `/menu — Main Menu\n/balance — Balance check\n/withdraw — Withdraw flow\n/referral — Referral link\n/help — এই message\n\n` +
         `*👨‍💼 Admin (শুধু Admin):*\n` +
-        `/admin লিখুন → Withdrawal requests দেখুন → Accept/Reject/Skip করুন`,
+        `/admin → Withdrawal requests দেখুন → Accept/Reject/Skip করুন`,
         { parse_mode: 'Markdown' }
     );
 }
@@ -622,6 +789,7 @@ function sendLinkAccount(chatId) {
 }
 
 async function getUserByTgId(telegramId) {
+    if (!db) return null;
     const snap = await db.collection('users').where('telegramId', '==', telegramId).limit(1).get();
     if (!snap.empty) return { id: snap.docs[0].id, ...snap.docs[0].data() };
     return null;
