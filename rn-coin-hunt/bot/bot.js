@@ -508,6 +508,25 @@ async function uStartWithdraw(chatId, userId) {
     const cfg = await getAppConfig();
     const bal = user.balance || 0;
 
+    // Block a new withdrawal (from bot or app) while any prior request from
+    // this user is still pending or binned. Approval/rejection releases the
+    // lock. Mirrors the same rule enforced inside the user app.
+    try {
+        const wsnap = await db.collection('withdrawals')
+            .where('userId', '==', user.id)
+            .get();
+        const hasPending = wsnap.docs.some(d => {
+            const s = d.data().status;
+            return s === 'pending' || s === 'binned';
+        });
+        if (hasPending) {
+            return bot.sendMessage(chatId,
+                `⏳ *You already have a pending withdrawal request.*\n\nPlease wait until it is approved or rejected before submitting another one.`,
+                { parse_mode: 'Markdown', reply_markup: backToMenuKb() }
+            );
+        }
+    } catch (e) { console.error('Pending-withdrawal check failed:', e); }
+
     if (bal < cfg.minWithdrawal) {
         return bot.sendMessage(chatId,
             `❌ Insufficient balance.\n\nMin: *${cfg.minWithdrawal}* Coins\nYou have: *${bal}* Coins`,
