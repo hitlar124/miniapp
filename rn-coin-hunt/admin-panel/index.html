@@ -323,7 +323,8 @@
                             <div><label class="field-label">Min Withdrawal (Coins)</label><input type="number" id="s-min-withdrawal" class="inp" placeholder="5000"></div>
                             <div><label class="field-label">Exchange: Coins</label><input type="number" id="s-coin-value-coins" class="inp" placeholder="1000"></div>
                             <div><label class="field-label">Exchange: ₹</label><input type="number" id="s-coin-value-inr" class="inp" placeholder="10"></div>
-                            <div class="col-span-3"><label class="field-label">Payment Methods (comma separated)</label><input type="text" id="s-payment-methods" class="inp" placeholder="UPI, Paytm, Crypto"></div>
+                            <div class="col-span-3"><label class="field-label">Payment Methods — comma separated (যেমন: UPI, Paytm, bKash)</label><input type="text" id="s-payment-methods" class="inp" placeholder="UPI, Paytm, bKash"></div>
+                            <div class="col-span-3"><label class="field-label">Withdrawal Options (Coin amount) — comma separated (যেমন: 1000, 2000, 5000, 10000)</label><input type="text" id="s-withdrawal-options" class="inp" placeholder="1000, 2000, 5000, 10000"></div>
                         </div>
                         <button onclick="saveAppSettings()" class="btn-primary px-6 py-2.5 rounded-xl mt-4">Save App Settings</button>
                     </div>
@@ -736,6 +737,7 @@
                 document.getElementById('s-coin-value-coins').value = c.coinValueCoins||1000;
                 document.getElementById('s-coin-value-inr').value = c.coinValueInr||10;
                 document.getElementById('s-payment-methods').value = (c.paymentMethods||[]).join(', ');
+                document.getElementById('s-withdrawal-options').value = (c.withdrawalOptions||[]).join(', ');
             }).catch(()=>{});
         }
     }
@@ -788,7 +790,8 @@
             minWithdrawal: +document.getElementById('s-min-withdrawal').value||5000,
             coinValueCoins: +document.getElementById('s-coin-value-coins').value||1000,
             coinValueInr: +document.getElementById('s-coin-value-inr').value||10,
-            paymentMethods: document.getElementById('s-payment-methods').value.split(',').map(s=>s.trim()).filter(Boolean)
+            paymentMethods: document.getElementById('s-payment-methods').value.split(',').map(s=>s.trim()).filter(Boolean),
+            withdrawalOptions: document.getElementById('s-withdrawal-options').value.split(',').map(s=>Number(s.trim())).filter(n=>n>0)
         };
         try { await setDoc(doc(db,'config','main'),data,{merge:true}); showAlert('App settings saved!'); }
         catch(e) { showAlert('Error: '+e.message); }
