@@ -10,12 +10,29 @@ const fs      = require('fs');
 
 // ── Config ────────────────────────────────────────────────────────
 const BOT_TOKEN    = process.env.BOT_TOKEN  || '';
-const ADMIN_IDS    = (process.env.ADMIN_TELEGRAM_IDS || '1414414216,7728185213')
-                        .split(',').map(s => s.trim());
-const MINI_APP_URL = process.env.MINI_APP_URL || 'https://your-app.onrender.com/user-app/';
-const SERVER_URL   = process.env.SERVER_URL   || 'https://your-app.onrender.com';
+// Accept both ADMIN_IDS (newer) and ADMIN_TELEGRAM_IDS (older) for compatibility
+const ADMIN_IDS    = (process.env.ADMIN_IDS || process.env.ADMIN_TELEGRAM_IDS || '')
+                        .split(',').map(s => s.trim()).filter(Boolean);
+const MINI_APP_URL = process.env.MINI_APP_URL || '';
+const SERVER_URL   = process.env.SERVER_URL   || '';
 const BOT_USERNAME = process.env.BOT_USERNAME || '';
 const PORT         = process.env.PORT         || 3001;
+
+// ── Startup diagnostics — print what's missing ───────────────────
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log('🔍 Bot startup check:');
+const checks = [
+    ['BOT_TOKEN',                 !!BOT_TOKEN,                                    'Required — bot will not start'],
+    ['ADMIN_IDS',                 ADMIN_IDS.length > 0,                           'Required — /admin commands will not work'],
+    ['MINI_APP_URL',              !!MINI_APP_URL,                                 'Required — "Open App" button will be broken'],
+    ['SERVER_URL',                !!SERVER_URL,                                   'Required — QR uploads will be broken'],
+    ['BOT_USERNAME',              !!BOT_USERNAME,                                 'Optional — needed for referral links'],
+    ['FIREBASE_SERVICE_ACCOUNT',  !!(process.env.FIREBASE_SERVICE_ACCOUNT || ''), 'Required — Balance / Withdraw will not work'],
+];
+checks.forEach(([name, ok, note]) => {
+    console.log(`  ${ok ? '✅' : '❌'} ${name.padEnd(28)} ${ok ? 'set' : `MISSING — ${note}`}`);
+});
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
 // ── Firebase Admin ────────────────────────────────────────────────
 let firebaseReady = false;
