@@ -258,6 +258,7 @@
                 <button class="tab-btn active" onclick="settingsTab('tab-panel')">Panel Login</button>
                 <button class="tab-btn" onclick="settingsTab('tab-firebase')">Firebase Config</button>
                 <button class="tab-btn" onclick="settingsTab('tab-app')">App Settings</button>
+                <button class="tab-btn" onclick="settingsTab('tab-ads')">Ad Integration</button>
             </div>
 
             <!-- Tab: Panel Login -->
@@ -330,6 +331,49 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Tab: Ad Integration -->
+            <div id="tab-ads" class="settings-tab hidden">
+                <div class="grid grid-cols-1 gap-5 max-w-2xl">
+
+                    <!-- Monetag -->
+                    <div class="glass p-5">
+                        <h3 class="font-bold text-yellow-400 mb-1">📺 Monetag Ad Integration</h3>
+                        <p class="text-white/50 text-xs mb-4">Monetag dashboard থেকে কোড নিয়ে এখানে paste করুন — আর কিছু করতে হবে না।</p>
+
+                        <div class="info-box mb-4 text-xs leading-relaxed">
+                            <b>কীভাবে পাবেন:</b><br>
+                            1. <b>monetag.com</b> → Login → Sites → Add Site<br>
+                            2. Site verify করুন → Ad Zones → <b>Telegram Mini App</b> zone তৈরি করুন<br>
+                            3. Integration Code-এ দুটো অংশ থাকবে:<br>
+                            &nbsp;&nbsp;&nbsp;• একটা <code style="background:rgba(255,255,255,0.1);padding:1px 4px;border-radius:3px">&lt;script&gt;</code> tag → নিচে "Script Tag" বক্সে paste করুন<br>
+                            &nbsp;&nbsp;&nbsp;• একটা function call যেমন <code style="background:rgba(255,255,255,0.1);padding:1px 4px;border-radius:3px">show_9630873()</code> → "Ad Function" বক্সে paste করুন
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="field-label">Monetag Script Tag <span class="text-white/30 text-xs">(Monetag-এর &lt;script&gt; tag টা এখানে paste করুন)</span></label>
+                                <textarea id="s-monetag-script" rows="4" class="inp resize-none font-mono text-xs" placeholder='<script src="https://..." data-zone="12345678" async></script>'></textarea>
+                            </div>
+                            <div>
+                                <label class="field-label">Ad Show Function <span class="text-white/30 text-xs">(যে function call করলে ad দেখাবে)</span></label>
+                                <input type="text" id="s-monetag-fn" class="inp font-mono" placeholder="show_9630873()">
+                            </div>
+                        </div>
+                        <button onclick="saveAdSettings()" class="btn-primary px-6 py-2.5 rounded-xl mt-4">💾 Save Ad Settings</button>
+                    </div>
+
+                    <!-- Custom Head Code -->
+                    <div class="glass p-5">
+                        <h3 class="font-bold text-yellow-400 mb-1">🔧 Custom Head Code</h3>
+                        <p class="text-white/50 text-xs mb-3">যেকোনো analytics, tracking বা অন্য script এখানে paste করুন — User App-এ auto-inject হবে।</p>
+                        <textarea id="s-custom-head" rows="5" class="inp resize-none font-mono text-xs" placeholder="<!-- Google Analytics, Facebook Pixel, etc. -->&#10;<script>...</script>"></textarea>
+                        <button onclick="saveAdSettings()" class="btn-primary px-6 py-2.5 rounded-xl mt-3">💾 Save</button>
+                    </div>
+
+                </div>
+            </div>
+
         </div>
     </main>
 </div>
@@ -738,6 +782,10 @@
                 document.getElementById('s-coin-value-inr').value = c.coinValueInr||10;
                 document.getElementById('s-payment-methods').value = (c.paymentMethods||[]).join(', ');
                 document.getElementById('s-withdrawal-options').value = (c.withdrawalOptions||[]).join(', ');
+                // Ad settings
+                document.getElementById('s-monetag-script').value = c.monetagScript || '';
+                document.getElementById('s-monetag-fn').value      = c.monetagAdFn   || '';
+                document.getElementById('s-custom-head').value     = c.customHeadCode|| '';
             }).catch(()=>{});
         }
     }
@@ -795,6 +843,17 @@
         };
         try { await setDoc(doc(db,'config','main'),data,{merge:true}); showAlert('App settings saved!'); }
         catch(e) { showAlert('Error: '+e.message); }
+    };
+
+    window.saveAdSettings = async function() {
+        if (!db) return showAlert('Firebase not connected.');
+        const monetagScript  = document.getElementById('s-monetag-script').value.trim();
+        const monetagAdFn    = document.getElementById('s-monetag-fn').value.trim();
+        const customHeadCode = document.getElementById('s-custom-head').value.trim();
+        try {
+            await setDoc(doc(db,'config','main'), { monetagScript, monetagAdFn, customHeadCode }, { merge: true });
+            showAlert('✅ Ad settings saved! User App-এ auto-load হবে।');
+        } catch(e) { showAlert('Error: '+e.message); }
     };
 
     // ---- Modal helpers ----

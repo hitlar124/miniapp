@@ -461,7 +461,12 @@
                     mathReward: d.mathReward || 10,
                     checkinReward: d.checkinReward || 50,
                     referralBonus: d.referralBonus || 100,
+                    monetagScript:  d.monetagScript  || '',
+                    monetagAdFn:    d.monetagAdFn    || '',
+                    customHeadCode: d.customHeadCode || '',
                 };
+                // Inject Monetag & custom scripts into <head> (only once)
+                injectAdScripts(appConfig);
             } catch (e) { console.error(e); }
         }
 
@@ -600,11 +605,68 @@
             await giveAdReward('math');
         };
 
+        // ── Inject ad scripts from Firebase config (once) ─────────────
+        let _adScriptsInjected = false;
+        function injectAdScripts(cfg) {
+            if (_adScriptsInjected) return;
+            _adScriptsInjected = true;
+            try {
+                if (cfg.monetagScript && cfg.monetagScript.trim()) {
+                    const tmp = document.createElement('div');
+                    tmp.innerHTML = cfg.monetagScript.trim();
+                    tmp.querySelectorAll('script').forEach(oldScript => {
+                        const s = document.createElement('script');
+                        if (oldScript.src)  s.src  = oldScript.src;
+                        if (oldScript.async) s.async = true;
+                        if (oldScript.defer) s.defer = true;
+                        oldScript.getAttributeNames().forEach(a => {
+                            if (a !== 'src') s.setAttribute(a, oldScript.getAttribute(a));
+                        });
+                        if (!oldScript.src) s.textContent = oldScript.textContent;
+                        document.head.appendChild(s);
+                    });
+                }
+                if (cfg.customHeadCode && cfg.customHeadCode.trim()) {
+                    const tmp2 = document.createElement('div');
+                    tmp2.innerHTML = cfg.customHeadCode.trim();
+                    tmp2.querySelectorAll('script').forEach(oldScript => {
+                        const s = document.createElement('script');
+                        if (oldScript.src) s.src = oldScript.src;
+                        oldScript.getAttributeNames().forEach(a => {
+                            if (a !== 'src') s.setAttribute(a, oldScript.getAttribute(a));
+                        });
+                        if (!oldScript.src) s.textContent = oldScript.textContent;
+                        document.head.appendChild(s);
+                    });
+                }
+            } catch (err) { console.error('Ad inject error:', err); }
+        }
+
+        // ── Watch Ad (calls Monetag function saved in Firebase) ────────
         window.watchAd = async function() {
-            // TODO: Replace with your Monetag Telegram Mini App ad call
-            // Example: if (window.show_YOURZONEID) { window.show_YOURZONEID(); }
-            // After ad completes, call giveAdReward('ad')
-            await giveAdReward('ad');
+            const adFn = appConfig?.monetagAdFn?.trim();
+            if (!adFn) {
+                // No ad configured — give reward directly (for testing)
+                await giveAdReward('ad');
+                return;
+            }
+            try {
+                // Call the Monetag function (e.g. show_9630873())
+                const result = await new Promise((resolve, reject) => {
+                    try {
+                        const ret = new Function('resolve','reject', `
+                            try {
+                                const r = ${adFn};
+                                if (r && typeof r.then === 'function') { r.then(resolve).catch(reject); }
+                                else { resolve(r); }
+                            } catch(e) { reject(e); }
+                        `)(resolve, reject);
+                    } catch(e) { reject(e); }
+                });
+                await giveAdReward('ad');
+            } catch (e) {
+                showAlert('Ad not available. পরে আবার চেষ্টা করুন।');
+            }
         };
 
         async function giveAdReward(type) {
