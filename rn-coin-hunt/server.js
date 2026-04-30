@@ -51,4 +51,13 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`RN Coin Hunt server running on port ${PORT}`);
+
+    // Start the Telegram bot in the same process.
+    // It uses long-polling, so it doesn't need its own port.
+    // Main server traffic keeps the whole process awake on Render free tier.
+    try {
+        require('./bot/bot.js');
+    } catch (e) {
+        console.error('Failed to start bot:', e.message);
+    }
 });

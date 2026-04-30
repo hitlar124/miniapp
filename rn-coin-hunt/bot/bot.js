@@ -1,10 +1,9 @@
 // ─────────────────────────────────────────────────────────────────
-// RN Coin Hunt — Telegram Bot
+// RN Coin Hunt — Telegram Bot (runs in-process with main server)
 // ─────────────────────────────────────────────────────────────────
 const TelegramBot = require('node-telegram-bot-api');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore, FieldValue }  = require('firebase-admin/firestore');
-const express = require('express');
 const path    = require('path');
 const fs      = require('fs');
 
@@ -16,7 +15,6 @@ const ADMIN_IDS    = (process.env.ADMIN_IDS || process.env.ADMIN_TELEGRAM_IDS ||
 const MINI_APP_URL = process.env.MINI_APP_URL || '';
 const SERVER_URL   = process.env.SERVER_URL   || '';
 const BOT_USERNAME = process.env.BOT_USERNAME || '';
-const PORT         = process.env.PORT         || 3001;
 
 // ── Startup diagnostics — print what's missing ───────────────────
 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -60,11 +58,8 @@ if (!BOT_TOKEN) {
     console.error('  4. Restart this workflow');
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('');
-    // Keep the process alive so the workflow stays "running" and the
-    // user can add the secret without the workflow being marked failed.
-    const app = express();
-    app.get('/', (_, res) => res.send('🤖 Bot is waiting for BOT_TOKEN secret.'));
-    app.listen(PORT, () => console.log(`Bot placeholder server on port ${PORT}`));
+    // Bot disabled — main server keeps running.
+    module.exports = { uploadDir: null, enabled: false };
     return;
 }
 
@@ -840,11 +835,8 @@ function downloadFile(url, dest) {
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Express — serves QR uploads
+// Bot ready — main server.js handles HTTP (incl. /uploads/)
 // ─────────────────────────────────────────────────────────────────
-const app = express();
-app.use('/uploads', express.static(UPLOAD_DIR));
-app.get('/', (_, res) => res.send('🤖 RN Coin Hunt Bot running!'));
-app.listen(PORT, () => console.log(`Bot server on port ${PORT}`));
+console.log('🤖 RN Coin Hunt Bot started (in-process with main server)');
 
-console.log('🤖 RN Coin Hunt Bot started!');
+module.exports = { uploadDir: UPLOAD_DIR, enabled: true };
