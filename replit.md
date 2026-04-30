@@ -51,18 +51,7 @@ Recommended dev rule (until proper rules are written): `allow read, write: if re
 ### User app (`/user-app/`) — earn flows
 
 All four "Earn Coins" tasks gate the reward behind a Monetag video ad
-(via `playMonetagAd()`).
-
-`playMonetagAd()` enforces a **minimum watch time** of
-`MIN_AD_WATCH_SECONDS` (default **10 s**). If the Monetag promise
-resolves earlier than that — i.e. the user tapped Monetag's own
-"Continue" button before its timer ran out, which Monetag allows — we
-throw an error and refuse the reward with the message
-"Please watch the full ad to earn the reward". This is the closest we
-can get to disabling Monetag's Continue button, since that button is
-rendered by Monetag's SDK and is not in our DOM.
-
-Tasks:
+(via `playMonetagAd()`):
 
 1. **Daily Check-in** → ad plays first, then `+checkinReward` once per day.
 2. **Math Quiz** → 2-digit numbers (10–99), only `+` and `-`. Subtraction
