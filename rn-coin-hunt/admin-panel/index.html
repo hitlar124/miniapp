@@ -716,9 +716,12 @@
                 docs.forEach(d => {
                     const r = d.data();
                     const date = r.requestedAt?.toDate ? r.requestedAt.toDate().toLocaleString() : 'N/A';
-                    const qrHtml = r.qrCodeUrl ? `<img class="qr-img" src="${r.qrCodeUrl}" onclick="openQR('${r.qrCodeUrl}')">` : '<span class="text-gray-500 text-xs">N/A</span>';
+                    const qrHtml = qrCellHtml(r);
+                    const sourceBadge = r.source === 'app'
+                        ? '<span class="badge-orange ml-1">📱 App</span>'
+                        : '<span class="badge-green ml-1">🤖 Bot</span>';
                     tbody.innerHTML += `<tr>
-                        <td><p class="font-medium">${r.userName||'N/A'}</p><p class="text-xs text-gray-500">${r.userEmail||''}</p></td>
+                        <td><p class="font-medium">${r.userName||'N/A'} ${sourceBadge}</p><p class="text-xs text-gray-500">${r.userEmail||''}</p></td>
                         <td class="font-bold text-yellow-400">${r.amount}</td>
                         <td class="text-sm text-gray-300">${r.method||''}</td>
                         <td class="text-sm">${r.accountName||'N/A'}</td>
@@ -760,9 +763,12 @@
                 docs.forEach(d => {
                     const r = d.data();
                     const date = r.binnedAt?.toDate ? r.binnedAt.toDate().toLocaleString() : 'N/A';
-                    const qrHtml = r.qrCodeUrl ? `<img class="qr-img" src="${r.qrCodeUrl}" onclick="openQR('${r.qrCodeUrl}')">` : '<span class="text-gray-500 text-xs">N/A</span>';
+                    const qrHtml = qrCellHtml(r);
+                    const sourceBadge = r.source === 'app'
+                        ? '<span class="badge-orange ml-1">📱 App</span>'
+                        : '<span class="badge-green ml-1">🤖 Bot</span>';
                     tbody.innerHTML += `<tr>
-                        <td><p class="font-medium">${r.userName||'N/A'}</p><p class="text-xs text-gray-500">${r.userEmail||''}</p></td>
+                        <td><p class="font-medium">${r.userName||'N/A'} ${sourceBadge}</p><p class="text-xs text-gray-500">${r.userEmail||''}</p></td>
                         <td class="font-bold text-yellow-400">${r.amount}</td>
                         <td class="text-sm text-gray-300">${r.method||''}</td>
                         <td>${qrHtml}</td>
@@ -858,6 +864,30 @@
     };
 
     // ---- Actions ----
+    // Resolve a stored qrCodeUrl into something the browser can load.
+    // - Absolute http(s) URLs: use as-is
+    // - Relative URLs starting with /uploads/: prefix with current page origin
+    // - Legacy values like "undefined/uploads/..." or "/uploads/..." with a stray host: strip and re-prefix
+    function resolveQrUrl(raw) {
+        if (!raw) return '';
+        const s = String(raw).trim();
+        if (/^https?:\/\//i.test(s)) return s;
+        const i = s.indexOf('/uploads/');
+        if (i >= 0) return window.location.origin + s.substring(i);
+        return s;
+    }
+    function qrCellHtml(r) {
+        const url = resolveQrUrl(r.qrCodeUrl);
+        if (url) {
+            return `<img class="qr-img" src="${url}" onclick="openQR('${url}')" onerror="this.outerHTML='<span class=\\'text-red-400 text-xs\\'>Image unavailable</span>'">`;
+        }
+        // App withdrawals (UPI only) — show UPI ID badge instead
+        const upi = r.upiId || (r.source === 'app' ? r.accountName : '');
+        if (upi) {
+            return `<span class="text-xs text-yellow-400 font-mono break-all">📱 UPI: ${upi}</span>`;
+        }
+        return '<span class="text-gray-500 text-xs">N/A</span>';
+    }
     window.openQR = url => { document.getElementById('qr-lb-img').src = url; document.getElementById('qr-lb').classList.add('open'); };
 
     window.openEditBalance = (uid, name, bal) => {

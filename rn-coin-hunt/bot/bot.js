@@ -172,11 +172,19 @@ bot.on('callback_query', async (query) => {
             if (action === 'menu')        await editToUserMenu(chatId, msgId, query.from.first_name);
             else if (action === 'balance')      await uShowBalance(chatId, msgId, userId);
             else if (action === 'withdraw')     await uStartWithdraw(chatId, userId);
+            else if (action === 'history')      await uShowHistory(chatId, msgId, userId, 0);
             else if (action === 'claimcoupon')  await uClaimCouponPrompt(chatId, msgId, userId);
             else if (action === 'channel')      await uShowChannel(chatId, msgId);
             else if (action === 'help')         await uShowHelp(chatId, msgId);
             else if (action === 'myid')         await uShowMyId(chatId, msgId, userId, query.from);
             else if (action === 'policy')       await uShowPolicy(chatId, msgId);
+            return;
+        }
+
+        // ── History pagination ──
+        if (data.startsWith('uh|page|')) {
+            const page = parseInt(data.split('|')[2]) || 0;
+            await uShowHistory(chatId, msgId, userId, page, true);
             return;
         }
 
@@ -420,6 +428,77 @@ async function uShowPolicy(chatId, msgId) {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Withdrawal History (user-side, paginated 5 per page)
+// ─────────────────────────────────────────────────────────────────
+const HIST_PAGE_SIZE = 5;
+
+function statusIcon(status) {
+    if (status === 'approved') return '✅';
+    if (status === 'rejected') return '❌';
+    // pending / binned
+    return '⏳';
+}
+
+async function uShowHistory(chatId, msgId, userId, page, edit) {
+    if (!db) return safeEdit(chatId, msgId, '⚠️ Database not configured.', backToMenuKb());
+    const user = await getUserByTgId(userId);
+    if (!user) return promptLinkAccount(chatId, msgId);
+
+    let docs = [];
+    try {
+        // No orderBy → avoids needing a composite Firestore index. Sort client-side.
+        const snap = await db.collection('withdrawals').where('userId', '==', user.id).get();
+        docs = snap.docs
+            .map(d => d.data())
+            .sort((a, b) => (b.requestedAt?.toMillis?.() || 0) - (a.requestedAt?.toMillis?.() || 0));
+    } catch (e) {
+        return safeEdit(chatId, msgId, '❌ Error loading history: ' + e.message, backToMenuKb());
+    }
+
+    const total = docs.length;
+    const totalPages = Math.max(1, Math.ceil(total / HIST_PAGE_SIZE));
+    if (page >= totalPages) page = totalPages - 1;
+    if (page < 0) page = 0;
+
+    const start = page * HIST_PAGE_SIZE;
+    const slice = docs.slice(start, start + HIST_PAGE_SIZE);
+    // Latest at the BOTTOM within the page → reverse the slice
+    const display = slice.slice().reverse();
+
+    let body;
+    if (total === 0) {
+        body = `📜 *Withdrawal History*\n\n_No withdrawal history yet._`;
+    } else {
+        const lines = display.map(r => {
+            const dt = r.requestedAt?.toDate?.()?.toLocaleString('en-IN') || '';
+            const acct = r.accountName || r.upiId || '—';
+            const src = r.source === 'app' ? '📱' : '🤖';
+            return `${statusIcon(r.status)} *${r.amount}* coins · ${r.method || '—'} ${src}\n   👤 ${acct}\n   📅 _${dt}_${r.reason ? `\n   ⚠️ ${r.reason}` : ''}`;
+        });
+        body = `📜 *Withdrawal History* (${total} total)\n_Latest at the bottom_\n\n` + lines.join('\n\n');
+    }
+
+    // Pagination row
+    const navRow = [];
+    if (page > 0) navRow.push({ text: '← Previous', callback_data: `uh|page|${page - 1}` });
+    if (page < totalPages - 1) navRow.push({ text: 'Next →', callback_data: `uh|page|${page + 1}` });
+
+    const kb = { inline_keyboard: [] };
+    if (navRow.length) kb.inline_keyboard.push(navRow);
+    kb.inline_keyboard.push([{ text: `📄 Page ${page + 1} / ${totalPages}`, callback_data: `uh|page|${page}` }]);
+    kb.inline_keyboard.push([{ text: '← Back to Menu', callback_data: 'u|menu' }]);
+
+    if (edit && msgId) {
+        // try to edit; if it fails (e.g. message was a photo), send fresh
+        try {
+            await bot.editMessageText(body, { chat_id: chatId, message_id: msgId, parse_mode: 'Markdown', reply_markup: kb });
+            return;
+        } catch {}
+    }
+    bot.sendMessage(chatId, body, { parse_mode: 'Markdown', reply_markup: kb });
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Withdrawal flow (user-side)
 // ─────────────────────────────────────────────────────────────────
 async function uStartWithdraw(chatId, userId) {
@@ -504,7 +583,10 @@ async function handleWithdrawFlow(msg) {
             const fname = `qr_${userId}_${Date.now()}.jpg`;
             const fpath = path.join(UPLOAD_DIR, fname);
             await downloadFile(fileUrl, fpath);
-            state.data.qrCodeUrl = `${SERVER_URL}/uploads/${fname}`;
+            // Store as relative path so the admin panel (same origin) can load it
+            // even if SERVER_URL is misconfigured. The bot resolves to absolute
+            // when needed via resolveQrUrl().
+            state.data.qrCodeUrl = `/uploads/${fname}`;
             state.data.qrLocalPath = fpath;
             state.step = 'ask_account_name';
             bot.sendMessage(chatId,
@@ -521,6 +603,20 @@ async function handleWithdrawFlow(msg) {
         await submitWithdrawal(chatId, userId);
         return;
     }
+}
+
+// Resolve a possibly-relative qrCodeUrl into an absolute URL the bot can fetch.
+// Falls back to local file path (which Telegram lib also accepts) when SERVER_URL
+// isn't configured.
+function resolveQrUrl(qrCodeUrl) {
+    if (!qrCodeUrl) return null;
+    if (/^https?:\/\//i.test(qrCodeUrl)) return qrCodeUrl;
+    if (SERVER_URL) return SERVER_URL.replace(/\/$/, '') + qrCodeUrl;
+    // Last-resort: turn /uploads/file.jpg into a local path we know exists
+    if (qrCodeUrl.startsWith('/uploads/')) {
+        return path.join(UPLOAD_DIR, qrCodeUrl.replace('/uploads/', ''));
+    }
+    return qrCodeUrl;
 }
 
 async function submitWithdrawal(chatId, userId) {
@@ -543,6 +639,7 @@ async function submitWithdrawal(chatId, userId) {
             method: state.data.method,
             accountName: state.data.accountName,
             qrCodeUrl: state.data.qrCodeUrl,
+            source: 'bot',
             status: 'pending',
             requestedAt: FieldValue.serverTimestamp()
         });
@@ -667,16 +764,20 @@ async function showPending(chatId, adminId, msgId, fromPanel) {
 async function renderPendingDoc(chatId, d, total) {
     const r = d.data();
     const date = r.requestedAt?.toDate?.()?.toLocaleString('en-IN') || 'N/A';
+    const srcLabel = r.source === 'app' ? '📱 from App' : '🤖 from Bot';
     const caption =
         `🔔 *Withdrawal Request* (${total} pending)\n\n` +
         `🆔 \`${d.id}\`\n` +
         `👤 *${r.userName}*\n📧 ${r.userEmail}\n` +
         `💳 *${r.method}* | 🪙 *${r.amount} Coins*\n` +
-        `👤 *${r.accountName}*\n📅 ${date}`;
+        `👤 *${r.accountName}*\n` +
+        `📥 ${srcLabel}\n` +
+        `📅 ${date}`;
 
+    const qrSrc = resolveQrUrl(r.qrCodeUrl);
     try {
-        if (r.qrCodeUrl) {
-            await bot.sendPhoto(chatId, r.qrCodeUrl, { caption, parse_mode: 'Markdown', reply_markup: pendingActionsKb(d.id) });
+        if (qrSrc) {
+            await bot.sendPhoto(chatId, qrSrc, { caption, parse_mode: 'Markdown', reply_markup: pendingActionsKb(d.id) });
         } else {
             await bot.sendMessage(chatId, caption, { parse_mode: 'Markdown', reply_markup: pendingActionsKb(d.id) });
         }
@@ -809,8 +910,9 @@ async function showBin(chatId, adminId, msgId, fromPanel) {
         `🆔 \`${d.id}\`\n👤 *${r.userName}*\n📧 ${r.userEmail}\n` +
         `💳 *${r.method}* | 🪙 *${r.amount} Coins*\n👤 *${r.accountName}*\n📅 Binned: ${date}`;
 
+    const qrSrc = resolveQrUrl(r.qrCodeUrl);
     try {
-        if (r.qrCodeUrl) await bot.sendPhoto(chatId, r.qrCodeUrl, { caption, parse_mode: 'Markdown', reply_markup: binActionsKb(d.id) });
+        if (qrSrc) await bot.sendPhoto(chatId, qrSrc, { caption, parse_mode: 'Markdown', reply_markup: binActionsKb(d.id) });
         else await bot.sendMessage(chatId, caption, { parse_mode: 'Markdown', reply_markup: binActionsKb(d.id) });
     } catch {
         await bot.sendMessage(chatId, caption, { parse_mode: 'Markdown', reply_markup: binActionsKb(d.id) });

@@ -226,17 +226,57 @@
             <!-- WALLET PAGE -->
             <div id="wallet-page" class="page p-4 space-y-5">
                 <h2 class="text-2xl font-bold text-neon">My Wallet</h2>
+
+                <!-- Balance card -->
                 <div class="glass-card p-5">
                     <div class="flex justify-between items-center mb-5 pb-5 border-b border-white/10">
                         <p class="text-sm text-gray-400">Total Balance</p>
                         <p class="font-bold text-2xl"><span id="wallet-coin-balance">0</span> 🪙</p>
                     </div>
-                    <div class="bg-black/30 p-3.5 rounded-xl mb-5 text-xs text-gray-400 flex justify-between border border-white/5">
+                    <div class="bg-black/30 p-3.5 rounded-xl text-xs text-gray-400 flex justify-between border border-white/5">
                         <span>Min Withdraw: <b id="min-withdrawal-info" class="text-white">...</b> Coins</span>
                         <span class="text-yellow-400 font-bold"><span id="coin-value-info">...</span></span>
                     </div>
-                    <p class="text-xs text-gray-500 mb-3">Use the Telegram bot menu to submit a withdrawal request.</p>
-                    <div id="withdrawal-history-list" class="space-y-3 mt-4"></div>
+                </div>
+
+                <!-- Withdraw FORM (UPI / no QR) -->
+                <div id="withdraw-form-card" class="glass-card p-5 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-lg">Withdraw Funds</h3>
+                        <button id="open-history-btn" class="text-xs font-semibold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-3 py-1.5 rounded-lg">📜 History</button>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wide">Amount</label>
+                        <div id="wf-amounts" class="grid grid-cols-3 gap-2"></div>
+                    </div>
+
+                    <div id="wf-method-wrap">
+                        <label class="block text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wide">Payment Method</label>
+                        <div id="wf-methods" class="grid grid-cols-2 gap-2"></div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wide">UPI ID</label>
+                        <input id="wf-upi" type="text" placeholder="yourname@bank" class="input-glass" autocapitalize="off" autocorrect="off">
+                        <p class="text-[11px] text-gray-500 mt-1.5">Enter your UPI ID (e.g. <span class="text-gray-400">name@okhdfcbank</span>). No QR upload needed here. To withdraw via QR, use the Telegram bot.</p>
+                    </div>
+
+                    <button id="wf-submit" class="w-full btn-neon py-3.5 rounded-xl text-[15px] btn-disabled">Submit Withdrawal</button>
+                </div>
+
+                <!-- HISTORY VIEW (toggled) -->
+                <div id="history-view-card" class="glass-card p-5 space-y-4 hidden">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-lg">Withdrawal History</h3>
+                        <button id="history-back-btn" class="text-xs font-semibold text-gray-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">← Back</button>
+                    </div>
+                    <div id="withdrawal-history-list" class="space-y-2.5 min-h-[80px]"></div>
+                    <div class="flex items-center justify-between pt-2 border-t border-white/5">
+                        <button id="hist-prev-btn" class="text-xs font-semibold px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 disabled:opacity-30">← Previous</button>
+                        <span id="hist-page-label" class="text-xs text-gray-400">Page 1</span>
+                        <button id="hist-next-btn" class="text-xs font-semibold px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 disabled:opacity-30">Next →</button>
+                    </div>
                 </div>
             </div>
 
@@ -532,6 +572,7 @@
             loadWithdrawalHistory();
             loadNotifications();
             updateTasksUI();
+            renderWithdrawForm();
         }
 
         function startTimers() {
@@ -690,20 +731,161 @@
             } catch (e) { showAlert(e.message); }
         }
 
-        async function loadWithdrawalHistory() {
+        // ── Withdrawal: in-app UPI form + paginated history ──
+        let wfState = { amount: null, method: null };
+        let historyAll = [];   // all docs newest→oldest
+        let historyPage = 0;   // 0 = latest 5
+        const HIST_PAGE_SIZE = 5;
+
+        function renderWithdrawForm() {
+            const cfg = appConfig;
+            const bal = userData?.balance || 0;
+            const opts = (cfg.withdrawalOptions || []).filter(o => o <= bal);
+            const methods = cfg.paymentMethods || [];
+
+            // Amount buttons
+            const amtBox = document.getElementById('wf-amounts');
+            if (opts.length === 0) {
+                amtBox.innerHTML = `<p class="col-span-3 text-xs text-gray-500 py-2">No amount options available for your balance.</p>`;
+                wfState.amount = null;
+            } else {
+                if (!opts.includes(wfState.amount)) wfState.amount = null;
+                amtBox.innerHTML = opts.map(o => `
+                    <button type="button" data-amt="${o}" class="wf-amt-btn py-2.5 rounded-lg border text-sm font-bold transition ${wfState.amount === o ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300' : 'bg-white/5 border-white/10 text-gray-300'}">🪙 ${o}</button>
+                `).join('');
+                amtBox.querySelectorAll('.wf-amt-btn').forEach(btn => {
+                    btn.addEventListener('click', () => { wfState.amount = parseInt(btn.dataset.amt); renderWithdrawForm(); });
+                });
+            }
+
+            // Method buttons
+            const mthBox = document.getElementById('wf-methods');
+            if (methods.length === 0) {
+                mthBox.innerHTML = `<p class="col-span-2 text-xs text-gray-500 py-2">No payment methods configured.</p>`;
+                wfState.method = null;
+            } else {
+                if (!methods.includes(wfState.method)) wfState.method = methods.length === 1 ? methods[0] : null;
+                mthBox.innerHTML = methods.map(m => `
+                    <button type="button" data-mth="${m}" class="wf-mth-btn py-2.5 rounded-lg border text-sm font-bold transition ${wfState.method === m ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300' : 'bg-white/5 border-white/10 text-gray-300'}">💳 ${m}</button>
+                `).join('');
+                mthBox.querySelectorAll('.wf-mth-btn').forEach(btn => {
+                    btn.addEventListener('click', () => { wfState.method = btn.dataset.mth; renderWithdrawForm(); });
+                });
+            }
+
+            // Submit button enable/disable
+            const upi = document.getElementById('wf-upi').value.trim();
+            const ok = wfState.amount && wfState.method && upi.length >= 3 && bal >= (cfg.minWithdrawal || 0);
+            const submit = document.getElementById('wf-submit');
+            submit.classList.toggle('btn-disabled', !ok);
+        }
+
+        async function submitAppWithdrawal() {
+            const cfg = appConfig;
+            const bal = userData?.balance || 0;
+            const upi = document.getElementById('wf-upi').value.trim();
+            if (!wfState.amount) return showAlert('Please choose an amount.');
+            if (!wfState.method) return showAlert('Please choose a payment method.');
+            if (!upi || upi.length < 3) return showAlert('Please enter a valid UPI ID.');
+            if (bal < wfState.amount) return showAlert('Insufficient balance.');
+            if (bal < (cfg.minWithdrawal || 0)) return showAlert(`Minimum withdrawal is ${cfg.minWithdrawal} coins.`);
+
+            const submit = document.getElementById('wf-submit');
+            submit.classList.add('btn-disabled');
+            submit.textContent = 'Submitting...';
             try {
-                const q = query(collection(db, 'withdrawals'), where('userId', '==', currentUser.uid), orderBy('requestedAt', 'desc'));
-                const snap = await getDocs(q);
-                const list = document.getElementById('withdrawal-history-list');
-                if (snap.empty) { list.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">No withdrawal history</p>'; return; }
-                list.innerHTML = snap.docs.map(d => {
-                    const r = d.data();
-                    const statusColor = r.status === 'approved' ? 'text-green-400' : r.status === 'rejected' ? 'text-red-400' : 'text-yellow-400';
-                    return `<div class="glass-card p-4 flex justify-between items-center">
-                        <div><p class="font-bold">${r.amount} Coins</p><p class="text-xs text-gray-400 mt-0.5">${r.method || ''}</p>${r.reason ? `<p class="text-xs text-red-400 mt-1">Reason: ${r.reason}</p>` : ''}</div>
-                        <span class="text-xs font-bold ${statusColor} uppercase">${r.status}</span>
+                await updateDoc(doc(db, 'users', currentUser.uid), { balance: increment(-wfState.amount) });
+                await addDoc(collection(db, 'withdrawals'), {
+                    userId: currentUser.uid,
+                    userName: userData.name || '',
+                    userEmail: userData.email || '',
+                    telegramId: userData.telegramId || null,
+                    amount: wfState.amount,
+                    method: wfState.method,
+                    accountName: upi,
+                    upiId: upi,
+                    qrCodeUrl: null,
+                    source: 'app',
+                    status: 'pending',
+                    requestedAt: serverTimestamp()
+                });
+                const submittedAmount = wfState.amount;
+                userData.balance = bal - submittedAmount;
+                wfState = { amount: null, method: null };
+                document.getElementById('wf-upi').value = '';
+                updateUI();
+                showAlert(`Request submitted! Your ${submittedAmount} coins withdrawal is now pending. You can track it in History.`);
+                await loadWithdrawalHistory();
+            } catch (e) {
+                showAlert(e.message || 'Failed to submit. Please try again.');
+            } finally {
+                submit.textContent = 'Submit Withdrawal';
+                renderWithdrawForm();
+            }
+        }
+
+        function statusIconHtml(status) {
+            if (status === 'approved') {
+                return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-500/15 border border-green-500/40 text-green-400" title="Approved">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </span>`;
+            }
+            if (status === 'rejected') {
+                return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-500/15 border border-red-500/40 text-red-400" title="Rejected">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </span>`;
+            }
+            // pending / binned → clock
+            return `<span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-yellow-500/15 border border-yellow-500/40 text-yellow-400" title="Pending">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </span>`;
+        }
+
+        function renderHistoryPage() {
+            const list = document.getElementById('withdrawal-history-list');
+            const totalPages = Math.max(1, Math.ceil(historyAll.length / HIST_PAGE_SIZE));
+            if (historyPage >= totalPages) historyPage = totalPages - 1;
+            if (historyPage < 0) historyPage = 0;
+
+            const start = historyPage * HIST_PAGE_SIZE;
+            const slice = historyAll.slice(start, start + HIST_PAGE_SIZE);
+            // Latest at the BOTTOM within the page → reverse this slice
+            const display = slice.slice().reverse();
+
+            if (historyAll.length === 0) {
+                list.innerHTML = '<p class="text-center text-gray-500 text-sm py-6">No withdrawal history yet</p>';
+            } else {
+                list.innerHTML = display.map(r => {
+                    const dt = r.requestedAt?.toDate ? r.requestedAt.toDate() : null;
+                    const dateStr = dt ? dt.toLocaleString() : '';
+                    const acct = r.accountName || r.upiId || '';
+                    const src = r.source === 'bot' ? '🤖 Bot' : '📱 App';
+                    return `<div class="bg-black/25 border border-white/5 rounded-xl p-3 flex items-center gap-3">
+                        ${statusIconHtml(r.status)}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="font-bold text-[15px]">${r.amount} Coins</p>
+                                <span class="text-[10px] text-gray-500 shrink-0">${dateStr}</span>
+                            </div>
+                            <p class="text-[11px] text-gray-400 mt-0.5 truncate">${r.method || ''} ${acct ? '· ' + acct : ''} · ${src}</p>
+                            ${r.reason ? `<p class="text-[11px] text-red-400 mt-1">Reason: ${r.reason}</p>` : ''}
+                        </div>
                     </div>`;
                 }).join('');
+            }
+
+            document.getElementById('hist-page-label').textContent = `Page ${historyPage + 1} of ${totalPages}`;
+            document.getElementById('hist-prev-btn').disabled = historyPage === 0;
+            document.getElementById('hist-next-btn').disabled = historyPage >= totalPages - 1;
+        }
+
+        async function loadWithdrawalHistory() {
+            try {
+                const q = query(collection(db, 'withdrawals'), where('userId', '==', currentUser.uid));
+                const snap = await getDocs(q);
+                historyAll = snap.docs.map(d => d.data())
+                    .sort((a, b) => (b.requestedAt?.toMillis?.() || 0) - (a.requestedAt?.toMillis?.() || 0));
+                renderHistoryPage();
             } catch (e) { console.error(e); }
         }
 
@@ -753,7 +935,38 @@
             await applyReferral(code);
         });
 
-        document.getElementById('home-withdraw-btn').addEventListener('click', () => navigateTo('wallet-page'));
+        document.getElementById('home-withdraw-btn').addEventListener('click', () => {
+            // Always land on the form view, not the history view
+            document.getElementById('history-view-card').classList.add('hidden');
+            document.getElementById('withdraw-form-card').classList.remove('hidden');
+            navigateTo('wallet-page');
+        });
+
+        // Wallet form events
+        document.getElementById('wf-upi').addEventListener('input', renderWithdrawForm);
+        document.getElementById('wf-submit').addEventListener('click', () => {
+            if (document.getElementById('wf-submit').classList.contains('btn-disabled')) return;
+            submitAppWithdrawal();
+        });
+
+        // History toggle + pagination
+        document.getElementById('open-history-btn').addEventListener('click', () => {
+            document.getElementById('withdraw-form-card').classList.add('hidden');
+            document.getElementById('history-view-card').classList.remove('hidden');
+            historyPage = 0;
+            loadWithdrawalHistory();
+        });
+        document.getElementById('history-back-btn').addEventListener('click', () => {
+            document.getElementById('history-view-card').classList.add('hidden');
+            document.getElementById('withdraw-form-card').classList.remove('hidden');
+        });
+        document.getElementById('hist-prev-btn').addEventListener('click', () => {
+            if (historyPage > 0) { historyPage--; renderHistoryPage(); }
+        });
+        document.getElementById('hist-next-btn').addEventListener('click', () => {
+            const totalPages = Math.max(1, Math.ceil(historyAll.length / HIST_PAGE_SIZE));
+            if (historyPage < totalPages - 1) { historyPage++; renderHistoryPage(); }
+        });
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
         document.getElementById('alert-ok-btn').addEventListener('click', () => document.getElementById('custom-alert').classList.add('hidden'));
         document.getElementById('notif-bell').addEventListener('click', () => navigateTo('notifications-page'));
