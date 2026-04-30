@@ -823,7 +823,15 @@
             } catch (err) { console.error('Ad inject error:', err); }
         }
 
-        // ── Shared: play one Monetag ad. Resolves on success, rejects on failure.
+        // Minimum seconds the user must keep the Monetag ad open before we
+        // credit any reward. Monetag's own "Continue" button can become
+        // tappable before its timer ends, so we enforce the wait on our side:
+        // if the ad-promise resolves earlier than this, we treat it as a skip
+        // and refuse the reward.
+        const MIN_AD_WATCH_SECONDS = 10;
+
+        // ── Shared: play one Monetag ad. Resolves on success, rejects on failure
+        // (including the user closing/skipping the ad before MIN_AD_WATCH_SECONDS).
         // If no ad is configured in admin, resolves immediately (so dev/testing works).
         async function playMonetagAd() {
             const adFn = appConfig?.monetagAdFn?.trim();
@@ -835,7 +843,8 @@
                 showAdBlockerWarning();
                 throw new Error('Ad blocker detected. Please disable it and try again.');
             }
-            return new Promise((resolve, reject) => {
+            const startedAt = Date.now();
+            await new Promise((resolve, reject) => {
                 try {
                     new Function('resolve','reject', `
                         try {
@@ -846,6 +855,11 @@
                     `)(resolve, reject);
                 } catch(e) { reject(e); }
             });
+            const watchedSec = (Date.now() - startedAt) / 1000;
+            if (watchedSec < MIN_AD_WATCH_SECONDS) {
+                const remaining = Math.ceil(MIN_AD_WATCH_SECONDS - watchedSec);
+                throw new Error(`Please watch the full ad to earn the reward. You skipped ${remaining}s too early — try again.`);
+            }
         }
 
         // ── Watch Ad (calls Monetag function saved in Firebase) ────────
