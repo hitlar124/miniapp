@@ -218,6 +218,24 @@
                     <div class="w-11 h-11 bg-green-500/15 text-green-400 rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
                 </div>
             </div>
+            <div class="grid grid-cols-2 gap-5">
+                <div class="glass p-5 flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-400 text-sm">Today's Withdrawals</p>
+                        <p id="stat-today-inr" class="text-4xl font-bold mt-1 text-yellow-400">—</p>
+                        <p id="stat-today-count" class="text-xs text-gray-500 mt-1">— approvals today</p>
+                    </div>
+                    <div class="w-11 h-11 bg-yellow-500/15 text-yellow-400 rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+                </div>
+                <div class="glass p-5 flex justify-between items-center">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Withdrawals (All-time)</p>
+                        <p id="stat-total-inr" class="text-4xl font-bold mt-1 text-emerald-400">—</p>
+                        <p id="stat-total-count" class="text-xs text-gray-500 mt-1">— approvals total</p>
+                    </div>
+                    <div class="w-11 h-11 bg-emerald-500/15 text-emerald-400 rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3v18h18M7 14l4-4 4 4 5-5"/></svg></div>
+                </div>
+            </div>
         </div>
 
         <!-- Users Page -->
@@ -666,6 +684,41 @@
         });
         onSnapshot(query(collection(db, 'withdrawals'), where('status', '==', 'approved')), snap => {
             document.getElementById('stat-approved').textContent = snap.size;
+
+            // Sum INR paid out, all-time and today.
+            // Each approved doc carries `inrAmount` (locked at approval time).
+            // Older docs that were approved before this field existed fall
+            // back to the *current* config rate so the totals still show
+            // sensible numbers right after this change ships.
+            getDoc(doc(db, 'config', 'main')).then(cfgSnap => {
+                const c = cfgSnap.exists() ? cfgSnap.data() : {};
+                const fbCoins = c.coinValueCoins || 1000;
+                const fbInr   = c.coinValueInr   || 10;
+                const fmt = (n) => '₹' + (Number.isInteger(n) ? n : n.toFixed(2));
+
+                // Compute "today" in the admin's local timezone.
+                const now = new Date();
+                const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                const dayEnd   = dayStart + 24 * 60 * 60 * 1000;
+
+                let totalInr = 0, todayInr = 0, todayCount = 0;
+                snap.forEach(d => {
+                    const w = d.data();
+                    const inr = (typeof w.inrAmount === 'number')
+                        ? w.inrAmount
+                        : ((w.amount || 0) / fbCoins) * fbInr;
+                    totalInr += inr;
+                    const ts = w.processedAt?.toMillis?.() || 0;
+                    if (ts >= dayStart && ts < dayEnd) {
+                        todayInr += inr;
+                        todayCount += 1;
+                    }
+                });
+                document.getElementById('stat-total-inr').textContent = fmt(totalInr);
+                document.getElementById('stat-total-count').textContent = `${snap.size} approvals total`;
+                document.getElementById('stat-today-inr').textContent = fmt(todayInr);
+                document.getElementById('stat-today-count').textContent = `${todayCount} approvals today`;
+            }).catch(() => {});
         });
         loadUsers();
         loadWithdrawals();
@@ -918,7 +971,22 @@
     window.approveW = (reqId, userId) => {
         showConfirm('Approve this withdrawal?', async () => {
             try {
-                await updateDoc(doc(db,'withdrawals',reqId),{status:'approved',processedAt:serverTimestamp()});
+                // Lock the INR payout at the *current* rate so historical
+                // totals stay correct even if the rate changes later.
+                const reqSnap = await getDoc(doc(db,'withdrawals',reqId));
+                const cfgSnap = await getDoc(doc(db,'config','main'));
+                const r = reqSnap.exists() ? reqSnap.data() : {};
+                const c = cfgSnap.exists() ? cfgSnap.data() : {};
+                const rateCoins = c.coinValueCoins || 1000;
+                const rateInr   = c.coinValueInr   || 10;
+                const inrAmount = ((r.amount || 0) / rateCoins) * rateInr;
+                await updateDoc(doc(db,'withdrawals',reqId),{
+                    status:'approved',
+                    processedAt:serverTimestamp(),
+                    inrAmount,
+                    coinRateCoins: rateCoins,
+                    coinRateInr: rateInr,
+                });
                 await addDoc(collection(db,'user_notifications'),{
                     userId, type:'approved',
                     title:'✅ Withdrawal Approved!',

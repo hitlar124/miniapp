@@ -813,7 +813,21 @@ async function doAccept(chatId, adminId, reqId, msgId) {
             return bot.sendMessage(chatId, '⚠️ Already processed or not found.', { reply_markup: adminPanelKb() });
         }
         const r = reqDoc.data();
-        await db.collection('withdrawals').doc(reqId).update({ status: 'approved', processedAt: FieldValue.serverTimestamp() });
+        // Lock the INR payout amount at approval time using the *current*
+        // coin rate, so totals stay accurate even if the admin later changes
+        // the rate. Stored on the withdrawal doc as inrAmount + the rate
+        // snapshot used to compute it.
+        const cfg = await getAppConfig();
+        const rateCoins = cfg.coinValueCoins || 1000;
+        const rateInr   = cfg.coinValueInr   || 10;
+        const inrAmount = (r.amount / rateCoins) * rateInr;
+        await db.collection('withdrawals').doc(reqId).update({
+            status: 'approved',
+            processedAt: FieldValue.serverTimestamp(),
+            inrAmount,
+            coinRateCoins: rateCoins,
+            coinRateInr: rateInr,
+        });
         await db.collection('user_notifications').add({
             userId: r.userId, type: 'approved',
             title: '✅ Withdrawal Approved!',

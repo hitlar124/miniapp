@@ -983,6 +983,16 @@
                 wfState.amount = null;
             } else {
                 if (!opts.includes(wfState.amount)) wfState.amount = null;
+                // INR equivalent at the *current* coin rate, shown next to
+                // the coin amount so the user always sees what they'll get
+                // paid out: e.g. "🪙 5000 = ₹50". Rejection refunds the coin
+                // amount; the actual ₹ paid is locked at admin approval time.
+                const rateCoins = cfg.coinValueCoins || 1000;
+                const rateInr   = cfg.coinValueInr   || 10;
+                const fmtInr = (coins) => {
+                    const inr = (coins / rateCoins) * rateInr;
+                    return Number.isInteger(inr) ? `₹${inr}` : `₹${inr.toFixed(2)}`;
+                };
                 amtBox.innerHTML = opts.map(o => {
                     const isSel  = wfState.amount === o;
                     const isOver = o > bal;
@@ -990,7 +1000,7 @@
                     if (isSel && isOver) cls = 'bg-red-500/15 border-red-500/60 text-red-300';
                     else if (isSel)      cls = 'bg-yellow-500/20 border-yellow-500 text-yellow-300';
                     else if (isOver)     cls = 'bg-white/[0.03] border-white/5 text-gray-500';
-                    return `<button type="button" data-amt="${o}" class="wf-amt-btn py-2.5 rounded-lg border text-sm font-bold transition ${cls}">🪙 ${o}</button>`;
+                    return `<button type="button" data-amt="${o}" class="wf-amt-btn py-2.5 rounded-lg border text-sm font-bold transition ${cls}">🪙 ${o} = ${fmtInr(o)}</button>`;
                 }).join('');
                 amtBox.querySelectorAll('.wf-amt-btn').forEach(btn => {
                     btn.addEventListener('click', () => { wfState.amount = parseInt(btn.dataset.amt); renderWithdrawForm(); });
