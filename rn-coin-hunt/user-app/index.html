@@ -412,6 +412,18 @@
                     await loadConfig();
                     await loadUserData();
                     if (userData?.isBlocked) { showAlert('Your account has been blocked.'); await signOut(auth); return; }
+                    // Save Telegram ID so bot can identify this user
+                    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+                    if (tgUser?.id) {
+                        const tgId = tgUser.id.toString();
+                        if (userData.telegramId !== tgId) {
+                            await updateDoc(doc(db, 'users', user.uid), {
+                                telegramId: tgId,
+                                telegramUsername: tgUser.username || null,
+                                telegramName: (tgUser.first_name || '') + (tgUser.last_name ? ' ' + tgUser.last_name : '')
+                            });
+                        }
+                    }
                     // Auto referral from Telegram start_param
                     const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
                     if (startParam && !userData.referredBy && startParam !== userData.referralCode) {
