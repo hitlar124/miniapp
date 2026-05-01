@@ -319,9 +319,26 @@
                         Share Invite Link
                     </button>
                 </div>
+
+                <!-- Referred users list -->
+                <div class="glass-card p-5">
+                    <h3 class="font-bold text-sm mb-3">Friends You've Referred</h3>
+                    <div id="referred-users-list">
+                        <p class="text-xs text-gray-500 text-center py-2">No referrals yet</p>
+                    </div>
+                </div>
+
+                <!-- Apply a friend's code (locked after use) -->
                 <div class="glass-card p-5">
                     <h3 class="font-bold text-sm mb-3">Redeem a Friend's Code</h3>
-                    <div class="flex gap-3">
+                    <div id="referral-applied-box" class="hidden bg-green-500/10 border border-green-500/30 rounded-xl p-3 flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-green-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div>
+                            <p class="text-sm font-bold text-green-300">Code Applied!</p>
+                            <p class="text-xs text-gray-400 mt-0.5">Joined via code: <span id="applied-code-display" class="font-mono text-yellow-400 font-bold">—</span></p>
+                        </div>
+                    </div>
+                    <div id="referral-input-box" class="flex gap-3">
                         <input id="enter-referral-code" type="text" placeholder="Enter code" class="input-glass py-3 text-center uppercase font-bold tracking-widest flex-1">
                         <button id="apply-referral-btn" class="btn-neon px-5 rounded-xl text-sm font-bold">Apply</button>
                     </div>
@@ -332,6 +349,19 @@
             <div id="notifications-page" class="page p-4 space-y-3">
                 <h2 class="text-2xl font-bold text-neon">Notifications</h2>
                 <div id="notifications-list" class="space-y-3"></div>
+            </div>
+
+            <!-- EARNING HISTORY PAGE -->
+            <div id="history-page" class="page p-4 space-y-4">
+                <h2 class="text-2xl font-bold text-neon">Earning History</h2>
+                <div id="earn-history-list" class="space-y-2">
+                    <p class="text-center text-gray-500 text-sm py-6">Loading...</p>
+                </div>
+                <div id="earn-history-pagination" class="hidden flex items-center justify-between gap-3">
+                    <button id="ehist-prev-btn" class="flex-1 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-bold disabled:opacity-30">← Prev</button>
+                    <span id="ehist-page-label" class="text-xs text-gray-400">Page 1</span>
+                    <button id="ehist-next-btn" class="flex-1 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-bold disabled:opacity-30">Next →</button>
+                </div>
             </div>
 
             <!-- PROFILE PAGE -->
@@ -352,25 +382,29 @@
         </main>
 
         <!-- Bottom Nav -->
-        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto grid grid-cols-4 py-2 glass-nav z-40">
-            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2 active" data-page="home-page">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                <span class="text-[10px] font-semibold">Home</span>
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto grid grid-cols-5 py-2 glass-nav z-40">
+            <a href="#" class="nav-link flex flex-col items-center gap-0.5 py-2 active" data-page="home-page">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span class="text-[9px] font-semibold">Home</span>
             </a>
-            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2" data-page="wallet-page">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                <span class="text-[10px] font-semibold">Wallet</span>
+            <a href="#" class="nav-link flex flex-col items-center gap-0.5 py-2" data-page="wallet-page">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                <span class="text-[9px] font-semibold">Wallet</span>
             </a>
-            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2" data-page="refer-page">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                <span class="text-[10px] font-semibold">Refer</span>
+            <a href="#" class="nav-link flex flex-col items-center gap-0.5 py-2" data-page="refer-page">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <span class="text-[9px] font-semibold">Refer</span>
             </a>
-            <a href="#" class="nav-link flex flex-col items-center gap-1 py-2 relative" data-page="notifications-page">
+            <a href="#" class="nav-link flex flex-col items-center gap-0.5 py-2" data-page="history-page">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                <span class="text-[9px] font-semibold">History</span>
+            </a>
+            <a href="#" class="nav-link flex flex-col items-center gap-0.5 py-2 relative" data-page="notifications-page">
                 <div class="relative">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                     <div id="notif-nav-dot" class="notif-dot"></div>
                 </div>
-                <span class="text-[10px] font-semibold">Alerts</span>
+                <span class="text-[9px] font-semibold">Alerts</span>
             </a>
         </nav>
     </div>
@@ -435,7 +469,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, onSnapshot, increment, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         // Firebase config is loaded from server env vars via /config.js
         // Set these in Render Environment Variables — no code editing needed
@@ -456,6 +490,9 @@
         let mathAnswer = 0;
         let timerInterval = null;
         const loader = document.getElementById('loader');
+        let earnHistoryAll = [];
+        let earnHistoryPage = 0;
+        const EARN_HIST_PAGE_SIZE = 10;
 
         // ---- AUTH ----
         document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-view').classList.add('hidden'); document.getElementById('signup-view').classList.remove('hidden'); });
@@ -585,6 +622,7 @@
                     mathReward: d.mathReward || 10,
                     checkinReward: d.checkinReward || 50,
                     referralBonus: d.referralBonus || 100,
+                    referralCommission: d.referralCommission || 0,
                     monetagScript:  d.monetagScript  || '',
                     monetagAdFn:    d.monetagAdFn    || '',
                     monetagPopupFn: d.monetagPopupFn || '',
@@ -612,19 +650,50 @@
 
         async function applyReferral(code) {
             try {
-                const q = query(collection(db, 'users'), where('referralCode', '==', code));
-                const snap = await getDocs(q);
-                if (!snap.empty) {
-                    const bonus = appConfig.referralBonus || 100;
-                    const refUserId = snap.docs[0].id;
-                    await updateDoc(doc(db, 'users', refUserId), { balance: increment(bonus) });
-                    await updateDoc(doc(db, 'users', currentUser.uid), { balance: increment(bonus), referredBy: code });
-                    userData.balance = (userData.balance || 0) + bonus;
-                    userData.referredBy = code;
-                    updateUI();
-                    showAlert(`You received ${bonus} coins as signup bonus!`);
+                // Use server API to credit referrer (firebase-admin bypasses Firestore rules)
+                const resp = await fetch('/api/apply-referral', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        referralCode: code,
+                        userId: currentUser.uid,
+                        userName: userData.name || '',
+                        userEmail: userData.email || ''
+                    })
+                });
+                const result = await resp.json();
+
+                if (!result.ok) {
+                    // If server says already applied or own code, do nothing silently
+                    if (result.error === 'Already used a referral code' || result.error === 'Cannot use your own code') return;
+                    if (result.error === 'Invalid referral code') { showAlert('Invalid referral code.'); return; }
+                    // Server unavailable (503) — fall back to client-side only
+                    if (resp.status === 503) {
+                        const bonus = appConfig.referralBonus || 100;
+                        const q = query(collection(db, 'users'), where('referralCode', '==', code));
+                        const snap = await getDocs(q);
+                        if (snap.empty) { showAlert('Invalid referral code.'); return; }
+                        await updateDoc(doc(db, 'users', currentUser.uid), { balance: increment(bonus), referredBy: code });
+                        await addDoc(collection(db, 'earn_history'), {
+                            userId: currentUser.uid, type: 'signup_bonus', amount: bonus,
+                            label: 'Referral sign-up bonus', createdAt: serverTimestamp()
+                        });
+                        userData.balance = (userData.balance || 0) + bonus;
+                        userData.referredBy = code;
+                        updateUI();
+                        showAlert(`You received ${bonus} coins as signup bonus!`);
+                    } else {
+                        showAlert(result.error || 'Failed to apply code.');
+                    }
+                    return;
                 }
-            } catch (e) { console.error(e); }
+
+                // Server handled everything: reload user data to get updated balance
+                const freshSnap = await getDoc(doc(db, 'users', currentUser.uid));
+                if (freshSnap.exists()) userData = { ...userData, ...freshSnap.data() };
+                updateUI();
+                showAlert(`You received ${result.bonus} coins as signup bonus!`);
+            } catch (e) { console.error('applyReferral error:', e); }
         }
 
         async function checkNotifications() {
@@ -656,8 +725,23 @@
             document.getElementById('math-modal-reward').textContent = appConfig.mathReward;
             document.getElementById('ad-reward-text').textContent = appConfig.adReward;
             document.getElementById('refer-bonus-text').textContent = appConfig.referralBonus;
+
+            // Referral code lock state
+            const appliedBox = document.getElementById('referral-applied-box');
+            const inputBox = document.getElementById('referral-input-box');
+            if (userData.referredBy) {
+                appliedBox.classList.remove('hidden');
+                inputBox.classList.add('hidden');
+                document.getElementById('applied-code-display').textContent = userData.referredBy;
+            } else {
+                appliedBox.classList.add('hidden');
+                inputBox.classList.remove('hidden');
+            }
+
             loadWithdrawalHistory();
             loadNotifications();
+            loadReferredUsers();
+            loadEarningHistory();
             updateTasksUI();
             renderWithdrawForm();
         }
@@ -714,6 +798,10 @@
             const reward = appConfig.checkinReward || 50;
             try {
                 await updateDoc(doc(db, 'users', currentUser.uid), { balance: increment(reward), lastCheckInDate: today });
+                await addDoc(collection(db, 'earn_history'), {
+                    userId: currentUser.uid, type: 'checkin', amount: reward,
+                    label: 'Daily Check-in', createdAt: serverTimestamp()
+                });
                 userData.balance += reward; userData.lastCheckInDate = today;
                 updateUI(); showAlert(`+${reward} Coins earned from Check-in!`);
             } catch (e) { showAlert(e.message); }
@@ -803,6 +891,10 @@
                     usedBy: [...(f.usedBy || []), currentUser.uid]
                 });
                 await updateDoc(doc(db, 'users', currentUser.uid), { balance: increment(coins) });
+                await addDoc(collection(db, 'earn_history'), {
+                    userId: currentUser.uid, type: 'coupon', amount: coins,
+                    label: `Coupon: ${code}`, createdAt: serverTimestamp()
+                });
                 await addDoc(collection(db, 'user_notifications'), {
                     userId: currentUser.uid,
                     type: 'coupon',
@@ -988,6 +1080,13 @@
                 if (isAd) { updates.dailyAdCount = increment(1); updates.lastAdTime = now; updates.lastAdWatchDate = today; userData.dailyAdCount = (userData.dailyAdCount || 0) + 1; userData.lastAdTime = now; }
                 else { updates.dailyMathCount = increment(1); updates.lastMathTime = now; updates.lastMathDate = today; userData.dailyMathCount = (userData.dailyMathCount || 0) + 1; userData.lastMathTime = now; }
                 await updateDoc(doc(db, 'users', currentUser.uid), updates);
+                await addDoc(collection(db, 'earn_history'), {
+                    userId: currentUser.uid,
+                    type: isAd ? 'ad' : 'math',
+                    amount: reward,
+                    label: isAd ? 'Watch Ad' : 'Brain Teaser Quiz',
+                    createdAt: serverTimestamp()
+                });
                 userData.balance += reward;
                 updateUI(); showAlert(`+${reward} Coins earned!`);
             } catch (e) { showAlert(e.message); }
@@ -1265,6 +1364,92 @@
             } catch (e) { console.error(e); }
         }
 
+        // ── Earning History ────────────────────────────────────────────
+        function earnTypeIcon(type) {
+            if (type === 'checkin')          return '📅';
+            if (type === 'ad')               return '📺';
+            if (type === 'math')             return '🧠';
+            if (type === 'coupon')           return '🎁';
+            if (type === 'referral_earned')  return '👥';
+            if (type === 'signup_bonus')     return '🎉';
+            return '🪙';
+        }
+
+        function renderEarningHistory() {
+            const list = document.getElementById('earn-history-list');
+            const pag  = document.getElementById('earn-history-pagination');
+            const totalPages = Math.max(1, Math.ceil(earnHistoryAll.length / EARN_HIST_PAGE_SIZE));
+            if (earnHistoryPage >= totalPages) earnHistoryPage = totalPages - 1;
+            if (earnHistoryPage < 0) earnHistoryPage = 0;
+
+            if (earnHistoryAll.length === 0) {
+                list.innerHTML = '<p class="text-center text-gray-500 text-sm py-6">No earnings recorded yet.<br><span class="text-xs">Complete tasks to see your history here.</span></p>';
+                pag.classList.add('hidden');
+                return;
+            }
+
+            const start = earnHistoryPage * EARN_HIST_PAGE_SIZE;
+            const display = earnHistoryAll.slice(start, start + EARN_HIST_PAGE_SIZE);
+            list.innerHTML = display.map(r => {
+                const dt = r.createdAt?.toDate ? r.createdAt.toDate() : null;
+                const dateStr = dt ? dt.toLocaleString() : '';
+                return `<div class="bg-black/25 border border-white/5 rounded-xl p-3 flex items-center gap-3">
+                    <span class="text-xl w-8 text-center shrink-0">${earnTypeIcon(r.type)}</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="font-bold text-[14px] text-yellow-300">+${r.amount} Coins</p>
+                            <span class="text-[10px] text-gray-500 shrink-0">${dateStr}</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-0.5 truncate">${r.label || r.type}</p>
+                    </div>
+                </div>`;
+            }).join('');
+
+            pag.classList.toggle('hidden', totalPages <= 1);
+            document.getElementById('ehist-page-label').textContent = `Page ${earnHistoryPage + 1} of ${totalPages}`;
+            document.getElementById('ehist-prev-btn').disabled = earnHistoryPage === 0;
+            document.getElementById('ehist-next-btn').disabled = earnHistoryPage >= totalPages - 1;
+        }
+
+        async function loadEarningHistory() {
+            try {
+                const snap = await getDocs(query(collection(db, 'earn_history'), where('userId', '==', currentUser.uid)));
+                earnHistoryAll = snap.docs.map(d => d.data())
+                    .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+                earnHistoryPage = 0;
+                renderEarningHistory();
+            } catch (e) { console.error('loadEarningHistory:', e); }
+        }
+
+        // ── Referred users list ────────────────────────────────────────
+        async function loadReferredUsers() {
+            try {
+                const myCode = userData.referralCode;
+                if (!myCode) return;
+                const snap = await getDocs(query(collection(db, 'referrals'), where('referralCode', '==', myCode)));
+                const el = document.getElementById('referred-users-list');
+                if (snap.empty) {
+                    el.innerHTML = '<p class="text-xs text-gray-500 text-center py-2">No referrals yet</p>';
+                    return;
+                }
+                const items = snap.docs.map(d => d.data())
+                    .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+                el.innerHTML = items.map(r => {
+                    const total = (r.bonusGiven || 0) + (r.commissionGiven || 0);
+                    const dt = r.createdAt?.toDate ? r.createdAt.toDate() : null;
+                    const dateStr = dt ? dt.toLocaleDateString() : '';
+                    return `<div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+                        <div class="w-8 h-8 bg-yellow-500/10 border border-yellow-500/20 rounded-full flex items-center justify-center text-sm font-bold text-yellow-400 shrink-0">${(r.referredName || '?').charAt(0).toUpperCase()}</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-bold truncate">${r.referredName || 'User'}</p>
+                            <p class="text-[10px] text-gray-500">${dateStr}</p>
+                        </div>
+                        <span class="text-xs font-bold text-yellow-400">+${total} 🪙</span>
+                    </div>`;
+                }).join('');
+            } catch (e) { console.error('loadReferredUsers:', e); }
+        }
+
         // Refer & Share
         document.getElementById('copy-code-btn').addEventListener('click', () => {
             navigator.clipboard.writeText(userData.referralCode || '');
@@ -1319,6 +1504,13 @@
             const totalPages = Math.max(1, Math.ceil(historyAll.length / HIST_PAGE_SIZE));
             if (historyPage < totalPages - 1) { historyPage++; renderHistoryPage(); }
         });
+        document.getElementById('ehist-prev-btn').addEventListener('click', () => {
+            if (earnHistoryPage > 0) { earnHistoryPage--; renderEarningHistory(); }
+        });
+        document.getElementById('ehist-next-btn').addEventListener('click', () => {
+            const totalPages = Math.max(1, Math.ceil(earnHistoryAll.length / EARN_HIST_PAGE_SIZE));
+            if (earnHistoryPage < totalPages - 1) { earnHistoryPage++; renderEarningHistory(); }
+        });
         document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
         document.getElementById('alert-ok-btn').addEventListener('click', () => document.getElementById('custom-alert').classList.add('hidden'));
         document.getElementById('adblock-retry-btn').addEventListener('click', async () => {
@@ -1359,7 +1551,12 @@
 
         function setupNavigation() {
             document.querySelectorAll('.nav-link').forEach(a => {
-                a.addEventListener('click', (e) => { e.preventDefault(); navigateTo(a.dataset.page); });
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navigateTo(a.dataset.page);
+                    if (a.dataset.page === 'history-page' && currentUser) loadEarningHistory();
+                    if (a.dataset.page === 'refer-page' && currentUser) loadReferredUsers();
+                });
             });
         }
     </script>

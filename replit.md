@@ -37,6 +37,8 @@ In Replit dev environment these aren't set, so the bot disables itself but the H
 - `coupons/{id}` — `code`, `totalUses`, `coinsPerUser`, `usedCount`, `usedBy[]`, `createdAt`, `createdBy`
 - `notifications/{id}` — broadcast (browser admin → all users)
 - `user_notifications/{id}` — per-user (`userId`, `type`, `title`, `message`, `createdAt`)
+- `earn_history/{id}` — per-user earning log: `userId`, `type` (`checkin`/`ad`/`math`/`coupon`/`referral_earned`/`signup_bonus`), `amount`, `label`, `createdAt`. Written server-side (referrals) or client-side (other tasks).
+- `referrals/{id}` — tracks who referred whom: `referrerId`, `referralCode`, `referredId`, `referredName`, `referredEmail`, `bonusGiven`, `commissionGiven`, `createdAt`. Used to render the "Friends You've Referred" list.
 - `config/main` — app settings:
   - Limits/cooldowns: `dailyAdLimit`, `adCooldown`, `dailyMathLimit`, `mathCooldown`
   - Rewards: `checkinReward`, `referralBonus`, `adReward`, `mathReward`, `referralCommission` (%)
@@ -51,7 +53,11 @@ Recommended dev rule (until proper rules are written): `allow read, write: if re
 
 ### User app (`/user-app/`) — earn flows
 
+Bottom nav has 5 tabs: Home · Wallet · Refer · History · Alerts.
+
 All four "Earn Coins" tasks gate the reward behind a Monetag video ad (via `playMonetagAd()`):
+
+Each completed task writes an `earn_history` document so every coin earned is recorded for the History tab.
 
 1. **Daily Check-in** → ad plays first, then `+checkinReward` once per day.
 2. **Math Quiz** → 2-digit numbers (10–99), only `+` and `-`. On a correct answer, ad plays first, then `+mathReward`.
@@ -101,6 +107,7 @@ Sections: Dashboard · Users · Withdrawals · Bin Requests · Coupons · Notifi
 
 - **Login**: username/password only. Firebase config set from Settings → Firebase Config.
 - **Server-side admin API** (`/api/admin/*`): broadcast, adjust-coins, ban-user, notify-user.
+- **Referral API** (`POST /api/apply-referral`): credits referrer + referred user via `firebase-admin` (bypasses Firestore rules), writes `earn_history` for both, writes `referrals` doc. Falls back to client-side if Firebase not configured on server.
 - **Users page**: filter tabs (All / Active / **Inactive** / Blocked). Inactive = balance 0 and not blocked.
 - **Banned Users page**: dedicated page listing all blocked users, search by email, one-click Unban.
 - **Withdrawals**: search bar to filter by name/email. Approve/Reject sends Telegram notification via `/api/admin/notify-user`.

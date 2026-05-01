@@ -160,6 +160,78 @@ app.post('/api/admin/broadcast', async (req, res) => {
     }
 });
 
+// ── Apply referral code (server-side, bypasses Firestore auth rules so referrer gets credited) ──
+app.post('/api/apply-referral', async (req, res) => {
+    const { referralCode, userId, userName, userEmail } = req.body || {};
+    if (!referralCode || !userId) return res.status(400).json({ ok: false, error: 'referralCode and userId required' });
+    try {
+        let botDb = null;
+        try { botDb = require('firebase-admin/firestore').getFirestore(); } catch {}
+        if (!botDb) return res.status(503).json({ ok: false, error: 'Firebase not configured on server' });
+        const { FieldValue } = require('firebase-admin/firestore');
+
+        // Validate current user exists and hasn't already used a code
+        const userRef = botDb.collection('users').doc(userId);
+        const userSnap = await userRef.get();
+        if (!userSnap.exists) return res.status(404).json({ ok: false, error: 'User not found' });
+        if (userSnap.data().referredBy) return res.status(400).json({ ok: false, error: 'Already used a referral code' });
+
+        // Find the referrer by code
+        const refSnap = await botDb.collection('users').where('referralCode', '==', referralCode).limit(1).get();
+        if (refSnap.empty) return res.status(404).json({ ok: false, error: 'Invalid referral code' });
+        const referrerId = refSnap.docs[0].id;
+        const referrerData = refSnap.docs[0].data();
+        if (referrerId === userId) return res.status(400).json({ ok: false, error: 'Cannot use your own code' });
+
+        // Read bonus/commission from config
+        const cfgSnap = await botDb.collection('config').doc('main').get();
+        const cfg = cfgSnap.exists ? cfgSnap.data() : {};
+        const bonus = cfg.referralBonus || 100;
+        const commission = cfg.referralCommission || 0;
+        const referredName = userName || userEmail || 'A new user';
+
+        // Credit referrer (bonus + commission)
+        await botDb.collection('users').doc(referrerId).update({ balance: FieldValue.increment(bonus + commission) });
+
+        // Credit current user (bonus) and mark referredBy
+        await userRef.update({ balance: FieldValue.increment(bonus), referredBy: referralCode });
+
+        // Earn history for referrer
+        await botDb.collection('earn_history').add({
+            userId: referrerId,
+            type: 'referral_earned',
+            amount: bonus + commission,
+            label: `Referral: ${referredName} joined`,
+            fromUserId: userId,
+            fromUserName: userName || '',
+            createdAt: FieldValue.serverTimestamp()
+        });
+
+        // Earn history for referred user
+        await botDb.collection('earn_history').add({
+            userId,
+            type: 'signup_bonus',
+            amount: bonus,
+            label: 'Referral sign-up bonus',
+            createdAt: FieldValue.serverTimestamp()
+        });
+
+        // Referrals tracking doc
+        await botDb.collection('referrals').add({
+            referrerId,
+            referralCode,
+            referredId: userId,
+            referredName: userName || '',
+            referredEmail: userEmail || '',
+            bonusGiven: bonus,
+            commissionGiven: commission,
+            createdAt: FieldValue.serverTimestamp()
+        });
+
+        res.json({ ok: true, bonus, commission, referrerId, referrerName: referrerData.name || '' });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── QR Code proxy — serves Telegram-hosted QR images via file_id ──
 // This survives redeploys because images are fetched live from Telegram's
 // servers using the stored file_id rather than the local uploads directory.
