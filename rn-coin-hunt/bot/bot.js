@@ -955,7 +955,7 @@ async function doAccept(chatId, adminId, reqId, msgId) {
         // Give referral commission to the referrer (if this user was referred by someone)
         try {
             const userSnap = await db.collection('users').doc(r.userId).get();
-            if (userSnap.exists && userSnap.data().referredBy) {
+            if (userSnap.exists && userSnap.data().referredBy && cfg.commissionEnabled !== false) {
                 const referralSnap = await db.collection('referrals')
                     .where('referredId', '==', r.userId).limit(1).get();
                 if (!referralSnap.empty) {

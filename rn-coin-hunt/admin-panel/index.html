@@ -480,10 +480,32 @@
                         <h3 class="font-bold text-yellow-400 mb-4">Coin Rewards</h3>
                         <div class="grid grid-cols-2 gap-3">
                             <div><label class="field-label">Check-in Coins</label><input type="number" id="s-checkin-reward" class="inp" placeholder="50"></div>
-                            <div><label class="field-label">Referral Bonus (Coins)</label><input type="number" id="s-referral-bonus" class="inp" placeholder="100"></div>
-                            <div><label class="field-label">Referral Commission %</label><input type="number" id="s-referral-commission" class="inp" placeholder="0" min="0" max="100" step="0.1"></div>
                             <div><label class="field-label">Ad Reward</label><input type="number" id="s-ad-reward" class="inp" placeholder="50"></div>
                             <div><label class="field-label">Math Quiz Reward</label><input type="number" id="s-math-reward" class="inp" placeholder="10"></div>
+                        </div>
+                        <div class="border-t border-white/5 pt-4 mt-4 grid grid-cols-2 gap-3">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="field-label mb-0">🎁 Sign-up Bonus (Coins)</label>
+                                    <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+                                        <input type="checkbox" id="s-signup-bonus-enabled" class="sr-only peer" checked>
+                                        <div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-yellow-500 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                                    </label>
+                                </div>
+                                <input type="number" id="s-referral-bonus" class="inp" placeholder="100">
+                                <p class="text-xs text-gray-500 mt-1">Both users get this on sign-up via referral</p>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="field-label mb-0">💸 Withdrawal Commission %</label>
+                                    <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+                                        <input type="checkbox" id="s-commission-enabled" class="sr-only peer" checked>
+                                        <div class="w-9 h-5 bg-gray-700 rounded-full peer peer-checked:bg-green-500 transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                                    </label>
+                                </div>
+                                <input type="number" id="s-referral-commission" class="inp" placeholder="0" min="0" max="100" step="0.1">
+                                <p class="text-xs text-gray-500 mt-1">Referrer earns this % on each approved withdrawal</p>
+                            </div>
                         </div>
                     </div>
                     <div class="glass p-5 col-span-2">
@@ -1366,7 +1388,7 @@
                 // Give referral commission to the referrer (if this user was referred by someone)
                 try {
                     const userSnap2 = await getDoc(doc(db, 'users', userId));
-                    if (userSnap2.exists() && userSnap2.data().referredBy) {
+                    if (userSnap2.exists() && userSnap2.data().referredBy && c.commissionEnabled !== false) {
                         const referralSnap = await getDocs(query(collection(db,'referrals'), where('referredId','==',userId)));
                         if (!referralSnap.empty) {
                             const referrerId = referralSnap.docs[0].data().referrerId;
@@ -1622,6 +1644,9 @@
                 // App control toggles
                 document.getElementById('s-app-enabled').checked = c.appEnabled !== false;
                 document.getElementById('s-adblocker-check').checked = c.adBlockerCheck !== false;
+                // Referral toggles
+                document.getElementById('s-signup-bonus-enabled').checked = c.signupBonusEnabled !== false;
+                document.getElementById('s-commission-enabled').checked = c.commissionEnabled !== false;
             }).catch(()=>{});
         }
     }
@@ -1684,6 +1709,8 @@
             policyText:  document.getElementById('s-policy-text').value.trim(),
             appEnabled: document.getElementById('s-app-enabled').checked,
             adBlockerCheck: document.getElementById('s-adblocker-check').checked,
+            signupBonusEnabled: document.getElementById('s-signup-bonus-enabled').checked,
+            commissionEnabled: document.getElementById('s-commission-enabled').checked,
         };
         try { await setDoc(doc(db,'config','main'),data,{merge:true}); showAlert('App settings saved!'); }
         catch(e) { showAlert('Error: '+e.message); }

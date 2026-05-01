@@ -233,48 +233,49 @@ app.post('/api/apply-referral', async (req, res) => {
         const cfgSnap = await botDb.collection('config').doc('main').get();
         const cfg = cfgSnap.exists ? cfgSnap.data() : {};
         const bonus = cfg.referralBonus || 100;
-        const commission = cfg.referralCommission || 0;
+        const signupBonusEnabled = cfg.signupBonusEnabled !== false;
         const referredName = userName || userEmail || 'A new user';
 
-        // Credit referrer (bonus + commission)
-        await botDb.collection('users').doc(referrerId).update({ balance: FieldValue.increment(bonus + commission) });
+        if (signupBonusEnabled) {
+            // Credit referrer (sign-up bonus only; withdrawal commission is handled separately on approval)
+            await botDb.collection('users').doc(referrerId).update({ balance: FieldValue.increment(bonus) });
+            // Credit current user (bonus) and mark referredBy
+            await userRef.update({ balance: FieldValue.increment(bonus), referredBy: referralCode });
+            // Earn history for referrer
+            await botDb.collection('earn_history').add({
+                userId: referrerId,
+                type: 'referral_earned',
+                amount: bonus,
+                label: `Referral: ${referredName} joined`,
+                fromUserId: userId,
+                fromUserName: userName || '',
+                createdAt: FieldValue.serverTimestamp()
+            });
+            // Earn history for referred user
+            await botDb.collection('earn_history').add({
+                userId,
+                type: 'signup_bonus',
+                amount: bonus,
+                label: 'Referral sign-up bonus',
+                createdAt: FieldValue.serverTimestamp()
+            });
+        } else {
+            // Bonus disabled — just mark referredBy so commission still tracks later
+            await userRef.update({ referredBy: referralCode });
+        }
 
-        // Credit current user (bonus) and mark referredBy
-        await userRef.update({ balance: FieldValue.increment(bonus), referredBy: referralCode });
-
-        // Earn history for referrer
-        await botDb.collection('earn_history').add({
-            userId: referrerId,
-            type: 'referral_earned',
-            amount: bonus + commission,
-            label: `Referral: ${referredName} joined`,
-            fromUserId: userId,
-            fromUserName: userName || '',
-            createdAt: FieldValue.serverTimestamp()
-        });
-
-        // Earn history for referred user
-        await botDb.collection('earn_history').add({
-            userId,
-            type: 'signup_bonus',
-            amount: bonus,
-            label: 'Referral sign-up bonus',
-            createdAt: FieldValue.serverTimestamp()
-        });
-
-        // Referrals tracking doc
+        // Referrals tracking doc (always record the referral relationship)
         await botDb.collection('referrals').add({
             referrerId,
             referralCode,
             referredId: userId,
             referredName: userName || '',
             referredEmail: userEmail || '',
-            bonusGiven: bonus,
-            commissionGiven: commission,
+            bonusGiven: signupBonusEnabled ? bonus : 0,
             createdAt: FieldValue.serverTimestamp()
         });
 
-        res.json({ ok: true, bonus, commission, referrerId, referrerName: referrerData.name || '' });
+        res.json({ ok: true, bonus: signupBonusEnabled ? bonus : 0, referrerId, referrerName: referrerData.name || '' });
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
