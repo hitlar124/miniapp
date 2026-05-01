@@ -586,6 +586,8 @@
         if (sessionStorage.getItem('rncch_logged_in') === '1') {
             showSection('dashboard-section');
             loadDashboard();
+            // Auto-sync local config to server in background (so other browsers can get it)
+            if (cfg && cfg.firebase) pushConfigToServer(cfg).catch(() => {});
         } else {
             showSection('login-section');
         }
@@ -730,12 +732,18 @@
         if (!cfg.panelUsername) cfg.panelUsername = u;
         if (!cfg.panelPassword) { try { cfg.panelPassword = btoa(unescape(encodeURIComponent(p))); } catch(e) { cfg.panelPassword = btoa(p); } }
         if (serverConfig && Object.keys(serverConfig).length > 0) {
+            // Server has config — use it (it's the authoritative source)
             if (serverConfig.firebase)    cfg.firebase    = serverConfig.firebase;
             if (serverConfig.adminEmail)  cfg.adminEmail  = serverConfig.adminEmail;
             if (serverConfig.adminFbPass) cfg.adminFbPass = serverConfig.adminFbPass;
             if (serverConfig.adminUids)   cfg.adminUids   = serverConfig.adminUids;
         }
         saveConfig(cfg);
+        // If server had no config but local does, push local config to server now
+        // This handles the migration case where config was set up before this feature existed
+        if ((!serverConfig || Object.keys(serverConfig).length === 0) && cfg.firebase) {
+            pushConfigToServer(cfg).catch(() => {});
+        }
 
         tryInitFirebase();
         if (cfg.adminEmail && cfg.adminFbPass && auth) {
