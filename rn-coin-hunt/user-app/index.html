@@ -1189,9 +1189,7 @@
             if (historyPage < 0) historyPage = 0;
 
             const start = historyPage * HIST_PAGE_SIZE;
-            const slice = historyAll.slice(start, start + HIST_PAGE_SIZE);
-            // Latest at the BOTTOM within the page → reverse this slice
-            const display = slice.slice().reverse();
+            const display = historyAll.slice(start, start + HIST_PAGE_SIZE);
 
             if (historyAll.length === 0) {
                 list.innerHTML = '<p class="text-center text-gray-500 text-sm py-6">No withdrawal history yet</p>';

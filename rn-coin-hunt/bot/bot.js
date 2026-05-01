@@ -516,9 +516,7 @@ async function uShowHistory(chatId, msgId, userId, page, edit) {
     if (page < 0) page = 0;
 
     const start = page * HIST_PAGE_SIZE;
-    const slice = docs.slice(start, start + HIST_PAGE_SIZE);
-    // Latest at the BOTTOM within the page → reverse the slice
-    const display = slice.slice().reverse();
+    const display = docs.slice(start, start + HIST_PAGE_SIZE);
 
     let body;
     if (total === 0) {
@@ -530,7 +528,7 @@ async function uShowHistory(chatId, msgId, userId, page, edit) {
             const src = r.source === 'app' ? '📱' : '🤖';
             return `${statusIcon(r.status)} *${r.amount}* coins · ${r.method || '—'} ${src}\n   👤 ${acct}\n   📅 _${dt}_${r.reason ? `\n   ⚠️ ${r.reason}` : ''}`;
         });
-        body = `📜 *Withdrawal History* (${total} total)\n_Latest at the bottom_\n\n` + lines.join('\n\n');
+        body = `📜 *Withdrawal History* (${total} total)\n_Latest at the top_\n\n` + lines.join('\n\n');
     }
 
     // Pagination row
