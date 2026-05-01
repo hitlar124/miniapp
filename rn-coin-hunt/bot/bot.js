@@ -99,7 +99,7 @@ function backToMenuKb() {
 }
 
 async function sendUserMainMenu(chatId, fromName, startParam, asNewMessage = true) {
-    const appUrl = MINI_APP_URL + (startParam ? `?start=${startParam}` : '');
+    const appUrl = MINI_APP_URL + (startParam ? `?startapp=${startParam}` : '');
     const text = `🏠 *Main Menu*\n\nWelcome${fromName ? ` ${fromName}` : ''}! Earn coins by completing tasks and withdraw anytime.`;
     if (asNewMessage) {
         await bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: userMainMenu(appUrl) });

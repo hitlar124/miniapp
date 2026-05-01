@@ -184,24 +184,28 @@ app.post('/api/admin/delete-user', async (req, res) => {
         if (!userSnap.exists) return res.status(404).json({ ok: false, error: 'User Firestore doc not found' });
         const userData = userSnap.data();
 
-        // 1. Delete from Firebase Auth (allows re-registration with same email)
+        // 1. Delete Firestore doc first (so re-registration works even if Auth step fails)
+        await botDb.collection('users').doc(resolvedId).delete();
+
+        // 2. Delete from Firebase Auth (allows re-registration with same email)
         let authDeleted = false;
         try {
             await getAdminAuth().deleteUser(resolvedId);
             authDeleted = true;
         } catch (authErr) {
-            // If user doesn't exist in Auth (e.g. legacy), continue anyway
-            if (authErr.code !== 'auth/user-not-found') throw authErr;
+            // auth/user-not-found means already deleted — that's fine
+            if (authErr.code !== 'auth/user-not-found') {
+                console.error('[delete-user] Auth delete failed (Firestore doc already deleted):', authErr.message);
+                // Still return ok:true since Firestore was cleaned; log for manual Auth cleanup if needed
+            }
         }
-
-        // 2. Delete Firestore doc (removes device fingerprint too, allows re-registration on same device)
-        await botDb.collection('users').doc(resolvedId).delete();
 
         res.json({
             ok: true,
             name: userData.name || resolvedId,
             email: userData.email || '',
-            authDeleted
+            authDeleted,
+            warning: authDeleted ? null : 'Firestore record deleted but Firebase Auth record may still exist. The user may need to contact support to re-register with the same email.'
         });
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });

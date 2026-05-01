@@ -1556,8 +1556,13 @@
                 document.getElementById('del-action-box').classList.remove('hidden');
                 document.getElementById('del-user-email').value = '';
                 _delPendingUser = null;
-                msg.textContent = `✅ "${json.name}" (${json.email}) সফলভাবে ডিলিট হয়েছে। Firebase Auth ও Firestore উভয় থেকে রিমুভ করা হয়েছে।`;
-                msg.className = 'mt-4 text-sm rounded-xl p-3 border bg-green-500/10 border-green-500/30 text-green-300';
+                if (json.authDeleted) {
+                    msg.textContent = `✅ "${json.name}" (${json.email}) deleted successfully from both Firestore and Firebase Auth. They can re-register with the same email.`;
+                    msg.className = 'mt-4 text-sm rounded-xl p-3 border bg-green-500/10 border-green-500/30 text-green-300';
+                } else {
+                    msg.textContent = `⚠️ "${json.name}" (${json.email}) removed from Firestore, but Firebase Auth record could not be deleted. The user may not be able to re-register with the same email.`;
+                    msg.className = 'mt-4 text-sm rounded-xl p-3 border bg-yellow-500/10 border-yellow-500/30 text-yellow-300';
+                }
                 msg.classList.remove('hidden');
             } else {
                 msg.textContent = '❌ Failed: ' + (json.error || 'Unknown error');

@@ -640,6 +640,7 @@
                 await checkNotifications();
                 updateUI();
                 startTimers();
+                loader.style.display = 'none';
                 showView('app-container');
                 navigateTo('home-page');
                 detectAdBlocker().then(blocked => { if (blocked) showAdBlockerWarning(); }).catch(() => {});
@@ -652,8 +653,13 @@
 
         window.onload = () => {
             if (window.Telegram?.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
-            // Capture start_param immediately — it may not be available after the auth flow
-            pendingReferralCode = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
+            // Capture referral code immediately from Telegram start_param or URL query param
+            // Bot sends ?startapp=CODE → Telegram sets initDataUnsafe.start_param = CODE
+            // Also check URL params as fallback (?startapp=CODE or legacy ?start=CODE)
+            const _tgStartParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
+            const _urlParams = new URLSearchParams(window.location.search);
+            const _urlStartParam = _urlParams.get('startapp') || _urlParams.get('start') || null;
+            pendingReferralCode = _tgStartParam || _urlStartParam;
             setupNavigation();
             showView('auth-section');
             onAuthStateChanged(auth, handleAuth);
