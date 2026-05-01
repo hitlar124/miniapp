@@ -399,29 +399,45 @@ async function uShowHelp(chatId, msgId) {
     );
 }
 
+function escapeHtml(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 async function uShowMyId(chatId, msgId, userId, from) {
     let extra = '';
-    if (db) {
-        const u = await getUserByTgId(userId);
-        if (u) {
-            extra =
-                `\n\n🔗 *Linked Account*\n` +
-                `👤 Name: ${u.name || '—'}\n` +
-                `📧 Email: \`${u.email || '—'}\`\n` +
-                `🪙 Balance: ${u.balance || 0} Coins\n\n` +
-                `_Tap the email above to copy it_`;
-        } else {
-            extra = `\n\n⚠️ Account not linked yet. Open the app and sign in.`;
+    try {
+        if (db) {
+            const u = await getUserByTgId(userId);
+            if (u) {
+                extra =
+                    `\n\n🔗 <b>Linked Account</b>\n` +
+                    `👤 Name: ${escapeHtml(u.name || '—')}\n` +
+                    `📧 Email: <code>${escapeHtml(u.email || '—')}</code>\n` +
+                    `🪙 Balance: ${u.balance || 0} Coins\n` +
+                    `\n<i>Tap the email above to copy it</i>`;
+            } else {
+                extra = `\n\n⚠️ Account not linked yet. Open the app and sign in.`;
+            }
         }
+    } catch (e) {
+        extra = '';
     }
-    safeEdit(chatId, msgId,
-        `🪪 *Your Telegram ID*\n\n` +
-        `🆔 ID: \`${userId}\`\n` +
-        `👤 Name: ${from.first_name || ''} ${from.last_name || ''}\n` +
-        (from.username ? `🔖 Username: @${from.username}\n` : '') +
-        extra,
-        backToMenuKb()
-    );
+    const firstName = escapeHtml(from.first_name || '');
+    const lastName  = escapeHtml(from.last_name  || '');
+    const username  = from.username ? `🔖 Username: @${escapeHtml(from.username)}\n` : '';
+    const text =
+        `🪪 <b>Your Telegram ID</b>\n\n` +
+        `🆔 ID: <code>${userId}</code>\n` +
+        `👤 Name: ${firstName} ${lastName}\n` +
+        username +
+        extra;
+    // Use HTML parse mode for this message so user-provided content (names, emails) can't break formatting
+    bot.editMessageText(text, {
+        chat_id: chatId, message_id: msgId, parse_mode: 'HTML',
+        reply_markup: backToMenuKb(), disable_web_page_preview: true
+    }).catch(() => {
+        bot.sendMessage(chatId, text, { parse_mode: 'HTML', reply_markup: backToMenuKb(), disable_web_page_preview: true }).catch(() => {});
+    });
 }
 
 async function uShowPolicy(chatId, msgId) {
