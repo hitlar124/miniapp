@@ -7,7 +7,9 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // ── Admin credentials file (set via setup, verified for API calls) ──
-const ADMIN_CREDS_FILE = path.join(__dirname, '.admin_creds.json');
+const ADMIN_CREDS_FILE  = path.join(__dirname, '.admin_creds.json');
+const ADMIN_CONFIG_FILE = path.join(__dirname, '.admin_config.json');
+
 function loadAdminCreds() {
     try { return JSON.parse(fs.readFileSync(ADMIN_CREDS_FILE, 'utf8')); } catch { return null; }
 }
@@ -18,12 +20,50 @@ function verifyAdminCreds(u, p) {
     const c = loadAdminCreds();
     return c && c.u === u && c.p === p;
 }
+function loadAdminConfig() {
+    try { return JSON.parse(fs.readFileSync(ADMIN_CONFIG_FILE, 'utf8')); } catch { return {}; }
+}
+function saveAdminConfig(cfg) {
+    fs.writeFileSync(ADMIN_CONFIG_FILE, JSON.stringify(cfg), 'utf8');
+}
+
+// ── Check if server has been set up (safe, no secrets exposed) ──
+app.get('/api/admin/has-config', (req, res) => {
+    const c = loadAdminCreds();
+    res.json({ setup: !!(c && c.u && c.p) });
+});
 
 // ── Save admin credentials (called from setup step 1) ──
 app.post('/api/admin/save-creds', (req, res) => {
     const { u, p } = req.body || {};
     if (!u || !p) return res.status(400).json({ ok: false, error: 'Missing credentials' });
     saveAdminCreds(u, p);
+    res.json({ ok: true });
+});
+
+// ── Get full panel config (firebase, adminUids, etc.) ──
+app.post('/api/admin/get-config', (req, res) => {
+    const { u, p } = req.body || {};
+    if (!verifyAdminCreds(u, p)) return res.status(403).json({ ok: false, error: 'Unauthorized' });
+    const cfg = loadAdminConfig();
+    res.json({ ok: true, config: cfg });
+});
+
+// ── Save full panel config (firebase, adminUids, etc.) ──
+app.post('/api/admin/save-full-config', (req, res) => {
+    const { u, p, config } = req.body || {};
+    if (!verifyAdminCreds(u, p)) return res.status(403).json({ ok: false, error: 'Unauthorized' });
+    if (!config || typeof config !== 'object') return res.status(400).json({ ok: false, error: 'config required' });
+    saveAdminConfig(config);
+    res.json({ ok: true });
+});
+
+// ── Clear panel config (called on reset) ──
+app.post('/api/admin/clear-config', (req, res) => {
+    const { u, p } = req.body || {};
+    if (!verifyAdminCreds(u, p)) return res.status(403).json({ ok: false, error: 'Unauthorized' });
+    try { fs.unlinkSync(ADMIN_CREDS_FILE); } catch {}
+    try { fs.unlinkSync(ADMIN_CONFIG_FILE); } catch {}
     res.json({ ok: true });
 });
 

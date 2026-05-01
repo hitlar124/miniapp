@@ -537,12 +537,45 @@
         } catch (e) { console.error('Firebase init error:', e); return false; }
     }
 
+    // ── Save non-sensitive config to server (firebase, adminUids, etc.) ──
+    async function pushConfigToServer(cfg) {
+        const u = sessionStorage.getItem('rncch_login_u') || '';
+        const p = sessionStorage.getItem('rncch_login_p') || '';
+        if (!u || !p) return;
+        const serverCfg = {};
+        if (cfg.firebase)     serverCfg.firebase     = cfg.firebase;
+        if (cfg.adminEmail)   serverCfg.adminEmail   = cfg.adminEmail;
+        if (cfg.adminFbPass)  serverCfg.adminFbPass  = cfg.adminFbPass;
+        if (cfg.adminUids)    serverCfg.adminUids    = cfg.adminUids;
+        try {
+            await fetch('/api/admin/save-full-config', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ u, p, config: serverCfg })
+            });
+        } catch {}
+    }
+
     // ---- Startup ----
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
+        // Check if server has ever been set up
+        let serverSetup = false;
+        try {
+            const r = await fetch('/api/admin/has-config');
+            const j = await r.json();
+            serverSetup = j.setup;
+        } catch {}
+
         const cfg = getConfig();
 
-        if (!cfg || !cfg.panelUsername) {
+        if (!serverSetup && (!cfg || !cfg.panelUsername)) {
+            // Truly first time — show setup
             showSection('setup-section');
+            return;
+        }
+
+        // Server has setup but this browser has no local config → show login to restore
+        if (!cfg || !cfg.panelUsername) {
+            showSection('login-section');
             return;
         }
 
@@ -602,8 +635,22 @@
         showSetupStep(3);
     };
 
-    window.setupStep3 = function(skip = false) {
+    window.setupStep3 = async function(skip = false) {
         if (skip) {
+            // Even on skip, save whatever Firebase config we have so far to server
+            const cfg = getConfig() || {};
+            const u = cfg.panelUsername || '';
+            const rawP = document.getElementById('setup-password')?.value || '';
+            if (u && rawP) {
+                const serverCfg = {};
+                if (cfg.firebase) serverCfg.firebase = cfg.firebase;
+                try {
+                    await fetch('/api/admin/save-full-config', {
+                        method: 'POST', headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({ u, p: rawP, config: serverCfg })
+                    });
+                } catch {}
+            }
             showAlert('✅ Setup complete! You can add Firebase credentials from Settings later.');
             setTimeout(() => { prefillSettings(); showSection('login-section'); }, 800);
             return;
@@ -618,6 +665,19 @@
         try { cfg.adminFbPass = btoa(unescape(encodeURIComponent(fbPass))); } catch(e) { cfg.adminFbPass = btoa(fbPass); }
         cfg.adminUids = uidStr.split(',').map(s => s.trim()).filter(Boolean);
         saveConfig(cfg);
+        // Also save firebase + admin info to server
+        const u = cfg.panelUsername || '';
+        const rawP = document.getElementById('setup-password')?.value || '';
+        if (u && rawP) {
+            const serverCfg = { adminEmail: cfg.adminEmail, adminFbPass: cfg.adminFbPass, adminUids: cfg.adminUids };
+            if (cfg.firebase) serverCfg.firebase = cfg.firebase;
+            try {
+                await fetch('/api/admin/save-full-config', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ u, p: rawP, config: serverCfg })
+                });
+            } catch {}
+        }
         showAlert('✅ Setup complete! Please log in now.');
         setTimeout(() => {
             tryInitFirebase();
@@ -627,49 +687,84 @@
     };
 
     // ---- Login ----
-    window.handleLogin = function() {
+    window.handleLogin = async function() {
         const u = document.getElementById('login-username').value.trim();
         const p = document.getElementById('login-password').value;
-        const cfg = getConfig();
-        if (!cfg) return;
         const errEl = document.getElementById('login-err');
+        const loginBtn = document.querySelector('#login-section button[onclick="handleLogin()"]');
+        if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = 'Logging in…'; }
 
-        // Support both btoa-encoded and plain text passwords (for migration)
-        let passwordMatch = false;
+        // Step 1: Try to get config from server (this also validates credentials)
+        let serverConfig = null;
+        let serverAuth = false;
         try {
-            passwordMatch = (btoa(unescape(encodeURIComponent(p))) === cfg.panelPassword)
-                || (btoa(p) === cfg.panelPassword)
-                || (p === cfg.panelPassword);
-        } catch(e) {
-            passwordMatch = (p === cfg.panelPassword);
+            const res = await fetch('/api/admin/get-config', {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ u, p })
+            });
+            const json = await res.json();
+            if (json.ok) { serverAuth = true; serverConfig = json.config || {}; }
+        } catch {}
+
+        // Step 2: Also check local config as fallback
+        let cfg = getConfig();
+        let localAuth = false;
+        if (cfg && cfg.panelUsername === u) {
+            try {
+                localAuth = (btoa(unescape(encodeURIComponent(p))) === cfg.panelPassword)
+                    || (btoa(p) === cfg.panelPassword)
+                    || (p === cfg.panelPassword);
+            } catch(e) { localAuth = (p === cfg.panelPassword); }
         }
 
-        if (u === cfg.panelUsername && passwordMatch) {
-            errEl.classList.add('hidden');
-            // Try Firebase init — non-blocking, admin can still log in without Firebase
-            tryInitFirebase();
-            // Attempt Firebase sign-in with stored credentials (background, non-blocking)
-            if (cfg.adminEmail && cfg.adminFbPass && auth) {
-                let fbPass = '';
-                try { fbPass = decodeURIComponent(escape(atob(cfg.adminFbPass))); } catch(e) { try { fbPass = atob(cfg.adminFbPass); } catch(e2) { fbPass = cfg.adminFbPass; } }
-                signInWithEmailAndPassword(auth, cfg.adminEmail, fbPass).catch(() => {});
-            }
-            // Also sync creds to server (needed for /api/admin/broadcast)
-            try { fetch('/api/admin/save-creds', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ u, p }) }); } catch {}
-            sessionStorage.setItem('rncch_logged_in', '1');
-            sessionStorage.setItem('rncch_login_u', u);
-            sessionStorage.setItem('rncch_login_p', p);
-            showSection('dashboard-section');
-            loadDashboard();
-        } else {
+        if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = 'Login'; }
+
+        if (!serverAuth && !localAuth) {
             errEl.classList.remove('hidden');
+            return;
         }
+        errEl.classList.add('hidden');
+
+        // Step 3: Merge server config into local config
+        cfg = cfg || {};
+        if (!cfg.panelUsername) cfg.panelUsername = u;
+        if (!cfg.panelPassword) { try { cfg.panelPassword = btoa(unescape(encodeURIComponent(p))); } catch(e) { cfg.panelPassword = btoa(p); } }
+        if (serverConfig && Object.keys(serverConfig).length > 0) {
+            if (serverConfig.firebase)    cfg.firebase    = serverConfig.firebase;
+            if (serverConfig.adminEmail)  cfg.adminEmail  = serverConfig.adminEmail;
+            if (serverConfig.adminFbPass) cfg.adminFbPass = serverConfig.adminFbPass;
+            if (serverConfig.adminUids)   cfg.adminUids   = serverConfig.adminUids;
+        }
+        saveConfig(cfg);
+
+        tryInitFirebase();
+        if (cfg.adminEmail && cfg.adminFbPass && auth) {
+            let fbPass = '';
+            try { fbPass = decodeURIComponent(escape(atob(cfg.adminFbPass))); } catch(e) { try { fbPass = atob(cfg.adminFbPass); } catch(e2) { fbPass = cfg.adminFbPass; } }
+            signInWithEmailAndPassword(auth, cfg.adminEmail, fbPass).catch(() => {});
+        }
+        // Sync creds to server (needed for /api/admin/broadcast)
+        try { fetch('/api/admin/save-creds', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ u, p }) }); } catch {}
+        sessionStorage.setItem('rncch_logged_in', '1');
+        sessionStorage.setItem('rncch_login_u', u);
+        sessionStorage.setItem('rncch_login_p', p);
+        showSection('dashboard-section');
+        loadDashboard();
+        prefillSettings();
     };
 
-    window.doReset = function() {
+    window.doReset = async function() {
         if (confirm('This will reset everything — username, password, Firebase config will be erased. Are you sure?')) {
+            // Try to clear server config before wiping local creds
+            const u = sessionStorage.getItem('rncch_login_u') || '';
+            const p = sessionStorage.getItem('rncch_login_p') || '';
+            if (u && p) {
+                try { await fetch('/api/admin/clear-config', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ u, p }) }); } catch {}
+            }
             localStorage.removeItem(LS_KEY);
             sessionStorage.removeItem('rncch_logged_in');
+            sessionStorage.removeItem('rncch_login_u');
+            sessionStorage.removeItem('rncch_login_p');
             showSection('setup-section');
             showSetupStep(1);
         }
@@ -1209,7 +1304,7 @@
         showAlert('Login credentials updated!');
     };
 
-    window.saveFirebaseConfig = function() {
+    window.saveFirebaseConfig = async function() {
         const apiKey = document.getElementById('s-apiKey').value.trim();
         const authDomain = document.getElementById('s-authDomain').value.trim();
         const projectId = document.getElementById('s-projectId').value.trim();
@@ -1226,6 +1321,8 @@
         if (aEmail) cfg.adminEmail = aEmail;
         if (aPass) { try { cfg.adminFbPass = btoa(unescape(encodeURIComponent(aPass))); } catch(e) { cfg.adminFbPass = btoa(aPass); } }
         saveConfig(cfg);
+        // Also save to server so other browsers get these settings on next login
+        await pushConfigToServer(cfg);
         showAlert('Firebase config saved! Reload the page to apply changes.');
     };
 
