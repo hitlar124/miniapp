@@ -545,6 +545,8 @@
         let earnHistoryAll = [];
         let earnHistoryPage = 0;
         const EARN_HIST_PAGE_SIZE = 10;
+        let pendingReferralCode = null;   // start_param captured before signup
+        let registrationInProgress = false; // true between createUser and setDoc finish
 
         // ---- AUTH ----
         document.getElementById('show-signup').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-view').classList.add('hidden'); document.getElementById('signup-view').classList.remove('hidden'); });
@@ -592,6 +594,10 @@
                         return showAlert('Not permitted to create multiple accounts from the same device. Please log in instead.');
                     }
                 } catch (_) { /* server unavailable — allow registration, fingerprint saved anyway */ }
+
+                // Flag registration in progress so handleAuth (fired by createUser) waits
+                registrationInProgress = true;
+                loader.style.display = 'flex';
                 const cred = await createUserWithEmailAndPassword(auth, email, pw);
                 const refCode = Math.random().toString(36).substring(2, 8).toUpperCase();
                 await setDoc(doc(db, 'users', cred.user.uid), {
@@ -603,11 +609,51 @@
                     lastNotificationCheck: serverTimestamp(), createdAt: serverTimestamp(),
                     telegramId: null, deviceFingerprint: fp
                 });
-            } catch (e) { showAlert(e.message); }
+                registrationInProgress = false;
+
+                // Apply referral from link (pendingReferralCode set at page load from start_param)
+                if (pendingReferralCode) {
+                    const rc = pendingReferralCode;
+                    pendingReferralCode = null;
+                    await applyReferral(rc);
+                }
+
+                // Complete app initialization (handleAuth bailed out because doc wasn't ready)
+                await loadConfig();
+                if (appConfig.appEnabled === false) {
+                    await signOut(auth);
+                    loader.style.display = 'none';
+                    showAlert('🔧 App is under maintenance. Please try again later.');
+                    return;
+                }
+                await loadUserData();
+                const tgUser2 = window.Telegram?.WebApp?.initDataUnsafe?.user;
+                if (tgUser2?.id && currentUser) {
+                    const tgId2 = tgUser2.id.toString();
+                    await updateDoc(doc(db, 'users', currentUser.uid), {
+                        telegramId: tgId2,
+                        telegramUsername: tgUser2.username || null,
+                        telegramName: (tgUser2.first_name || '') + (tgUser2.last_name ? ' ' + tgUser2.last_name : '')
+                    });
+                    if (userData) { userData.telegramId = tgId2; }
+                }
+                await checkNotifications();
+                updateUI();
+                startTimers();
+                showView('app-container');
+                navigateTo('home-page');
+                detectAdBlocker().then(blocked => { if (blocked) showAdBlockerWarning(); }).catch(() => {});
+            } catch (e) {
+                registrationInProgress = false;
+                loader.style.display = 'none';
+                showAlert(e.message);
+            }
         });
 
         window.onload = () => {
             if (window.Telegram?.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
+            // Capture start_param immediately — it may not be available after the auth flow
+            pendingReferralCode = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
             setupNavigation();
             showView('auth-section');
             onAuthStateChanged(auth, handleAuth);
@@ -615,8 +661,11 @@
 
         async function handleAuth(user) {
             if (user) {
-                loader.style.display = 'flex';
                 currentUser = user;
+                // If signup is still in progress (setDoc not yet done), bail out —
+                // the signup click-handler will complete initialization after setDoc.
+                if (registrationInProgress) { return; }
+                loader.style.display = 'flex';
                 try {
                     await loadConfig();
                     if (appConfig.appEnabled === false) {
@@ -626,6 +675,11 @@
                         return;
                     }
                     await loadUserData();
+                    if (!userData) {
+                        // Doc not ready yet (race during signup) — signup handler will finish setup
+                        loader.style.display = 'none';
+                        return;
+                    }
                     if (userData?.isBlocked) { showAlert('Your account has been blocked.'); await signOut(auth); return; }
                     // Save Telegram ID so bot can identify this user
                     const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
@@ -639,9 +693,10 @@
                             });
                         }
                     }
-                    // Auto referral from Telegram start_param
-                    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+                    // Auto referral — use captured pendingReferralCode or start_param (for re-logins)
+                    const startParam = pendingReferralCode || window.Telegram?.WebApp?.initDataUnsafe?.start_param;
                     if (startParam && !userData.referredBy && startParam !== userData.referralCode) {
+                        pendingReferralCode = null;
                         await applyReferral(startParam);
                     }
                     await checkNotifications();
@@ -759,7 +814,7 @@
                 const freshSnap = await getDoc(doc(db, 'users', currentUser.uid));
                 if (freshSnap.exists()) userData = { ...userData, ...freshSnap.data() };
                 updateUI();
-                showAlert(`You received ${result.bonus} coins as signup bonus!`);
+                if (result.bonus > 0) showAlert(`You received ${result.bonus} coins as signup bonus!`);
             } catch (e) { console.error('applyReferral error:', e); }
         }
 
