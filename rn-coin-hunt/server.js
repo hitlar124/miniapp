@@ -160,6 +160,52 @@ app.post('/api/admin/broadcast', async (req, res) => {
     }
 });
 
+// ── Permanently delete a user from Firebase Auth + Firestore (admin only) ──
+// Deletes both the Auth record (so same email can re-register) and the Firestore doc
+// (so device fingerprint is also wiped — same device can re-register too).
+app.post('/api/admin/delete-user', async (req, res) => {
+    const { u, p, userId } = req.body || {};
+    if (!verifyAdminCreds(u, p)) return res.status(403).json({ ok: false, error: 'Unauthorized' });
+    if (!userId) return res.status(400).json({ ok: false, error: 'userId (email or UID) required' });
+    try {
+        let botDb = null;
+        try { botDb = require('firebase-admin/firestore').getFirestore(); } catch {}
+        if (!botDb) return res.status(503).json({ ok: false, error: 'Firebase not configured on server' });
+
+        const { FieldValue } = require('firebase-admin/firestore');
+        const { getAuth: getAdminAuth } = require('firebase-admin/auth');
+
+        // Resolve email → UID
+        const resolvedId = await resolveUserId(botDb, userId);
+        if (!resolvedId) return res.status(404).json({ ok: false, error: 'No user found with that email or ID' });
+
+        // Get user data for the response
+        const userSnap = await botDb.collection('users').doc(resolvedId).get();
+        if (!userSnap.exists) return res.status(404).json({ ok: false, error: 'User Firestore doc not found' });
+        const userData = userSnap.data();
+
+        // 1. Delete from Firebase Auth (allows re-registration with same email)
+        let authDeleted = false;
+        try {
+            await getAdminAuth().deleteUser(resolvedId);
+            authDeleted = true;
+        } catch (authErr) {
+            // If user doesn't exist in Auth (e.g. legacy), continue anyway
+            if (authErr.code !== 'auth/user-not-found') throw authErr;
+        }
+
+        // 2. Delete Firestore doc (removes device fingerprint too, allows re-registration on same device)
+        await botDb.collection('users').doc(resolvedId).delete();
+
+        res.json({
+            ok: true,
+            name: userData.name || resolvedId,
+            email: userData.email || '',
+            authDeleted
+        });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── Apply referral code (server-side, bypasses Firestore auth rules so referrer gets credited) ──
 app.post('/api/apply-referral', async (req, res) => {
     const { referralCode, userId, userName, userEmail } = req.body || {};
