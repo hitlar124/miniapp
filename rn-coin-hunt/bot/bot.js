@@ -554,6 +554,41 @@ async function uShowHistory(chatId, msgId, userId, page, edit) {
 // ─────────────────────────────────────────────────────────────────
 // Withdrawal flow (user-side)
 // ─────────────────────────────────────────────────────────────────
+// ── IST date helper ──────────────────────────────────────────────
+function getISTDateString() {
+    const now = new Date();
+    return new Date(now.getTime() + (5 * 60 + 30) * 60 * 1000).toISOString().split('T')[0];
+}
+
+// ── Withdrawal eligibility check ─────────────────────────────────
+async function checkWithdrawalEligibility(user) {
+    try {
+        const snap = await db.collection('config').doc('eligibility').get();
+        if (!snap.exists) return { eligible: true, message: '' };
+        const rules = (snap.data().withdrawal) || [];
+        if (!rules.length) return { eligible: true, message: '' };
+
+        const today = getISTDateString();
+        const progress = {
+            adWatch:  { label: 'Ad Watch',   icon: '▶️', done: user.lastAdWatchDate === today ? (user.dailyAdCount  || 0) : 0 },
+            mathQuiz: { label: 'Math Quiz',   icon: '🧮', done: user.lastMathDate    === today ? (user.dailyMathCount || 0) : 0 },
+        };
+
+        const unmet = [];
+        for (const rule of rules) {
+            const p = progress[rule.taskId] || { label: rule.label, icon: '📋', done: 0 };
+            if (p.done < rule.required) {
+                unmet.push({ icon: p.icon, label: rule.label, done: p.done, required: rule.required });
+            }
+        }
+        if (!unmet.length) return { eligible: true, message: '' };
+
+        const lines = unmet.map(u => `${u.icon} *${u.label}*: ${u.done}/${u.required} (${u.required - u.done} more needed)`);
+        const message = `🔒 *Withdrawal Not Unlocked*\n\nYou need to complete today's required tasks first:\n\n${lines.join('\n')}\n\n_Requirements reset every day at 12:00 AM IST._`;
+        return { eligible: false, message };
+    } catch { return { eligible: true, message: '' }; }
+}
+
 async function uStartWithdraw(chatId, userId) {
     if (!db) return bot.sendMessage(chatId, '⚠️ Database not configured.');
     const user = await getUserByTgId(userId);
@@ -579,6 +614,12 @@ async function uStartWithdraw(chatId, userId) {
             );
         }
     } catch (e) { console.error('Pending-withdrawal check failed:', e); }
+
+    // ── Eligibility check ─────────────────────────────────────────
+    const eligResult = await checkWithdrawalEligibility(user);
+    if (!eligResult.eligible) {
+        return bot.sendMessage(chatId, eligResult.message, { parse_mode: 'Markdown', reply_markup: backToMenuKb() });
+    }
 
     if (bal < cfg.minWithdrawal) {
         return bot.sendMessage(chatId,

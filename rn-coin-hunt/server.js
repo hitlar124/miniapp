@@ -395,13 +395,25 @@ app.get('/api/admin/today-workers', async (req, res) => {
             usersRef.where('lastCheckInDate', '==', today).get(),
         ]);
 
-        // Union by UID (deduplicate)
-        const workerIds = new Set();
-        adSnap.forEach(d => workerIds.add(d.id));
-        mathSnap.forEach(d => workerIds.add(d.id));
-        checkinSnap.forEach(d => workerIds.add(d.id));
+        // Union by UID — only count users who actually completed tasks (count > 0)
+        // Filtering client-side to avoid needing a composite Firestore index
+        const workerMap = new Map(); // uid → email
+        adSnap.forEach(d => {
+            const data = d.data();
+            if ((data.dailyAdCount || 0) >= 1) workerMap.set(d.id, data.email || '');
+        });
+        mathSnap.forEach(d => {
+            const data = d.data();
+            if ((data.dailyMathCount || 0) >= 1) workerMap.set(d.id, data.email || '');
+        });
+        // Check-in: lastCheckInDate == today is sufficient (no count needed)
+        checkinSnap.forEach(d => {
+            const data = d.data();
+            workerMap.set(d.id, data.email || '');
+        });
 
-        res.json({ ok: true, count: workerIds.size, date: today });
+        const emails = [...workerMap.values()].filter(Boolean).sort();
+        res.json({ ok: true, count: workerMap.size, date: today, emails });
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
@@ -458,8 +470,8 @@ function scheduleNightlyReport(botModule) {
                 usersRef.where('lastCheckInDate', '==', today).get(),
             ]);
             const workerIds = new Set();
-            adSnap.forEach(d => workerIds.add(d.id));
-            mathSnap.forEach(d => workerIds.add(d.id));
+            adSnap.forEach(d => { if ((d.data().dailyAdCount || 0) >= 1) workerIds.add(d.id); });
+            mathSnap.forEach(d => { if ((d.data().dailyMathCount || 0) >= 1) workerIds.add(d.id); });
             checkinSnap.forEach(d => workerIds.add(d.id));
 
             const ADMIN_IDS = (process.env.ADMIN_IDS || process.env.ADMIN_TELEGRAM_IDS || '')

@@ -349,17 +349,6 @@
                                 </p>
                             </div>
                         </div>
-                        <div id="rule-example-card" class="flex items-start gap-3 p-3 rounded-xl bg-blue-500/5 border border-blue-500/15">
-                            <span class="text-xl shrink-0">📊</span>
-                            <div>
-                                <p class="text-sm font-bold text-blue-300">Example</p>
-                                <p class="text-xs text-gray-400 leading-relaxed mt-0.5">
-                                    If your friend withdraws <span id="rule-ex-coins" class="text-blue-300 font-bold">...</span> coins
-                                    and it gets approved, you instantly get
-                                    <span id="rule-ex-commission" class="text-blue-300 font-bold">...</span> coins.
-                                </p>
-                            </div>
-                        </div>
                         <div id="rule-reject-card" class="flex items-start gap-3 p-3 rounded-xl bg-red-500/5 border border-red-500/15">
                             <span class="text-xl shrink-0">❌</span>
                             <div>
@@ -870,7 +859,6 @@
             const rulesSection = document.getElementById('referral-rules-section');
             const ruleSignup   = document.getElementById('rule-signup-card');
             const ruleComm     = document.getElementById('rule-commission-card');
-            const ruleExample  = document.getElementById('rule-example-card');
             const ruleReject   = document.getElementById('rule-reject-card');
             // Show/hide entire section
             if (!signupOn && !commOn) {
@@ -882,14 +870,10 @@
                 if (signupOn) document.getElementById('rule-signup-bonus').textContent = appConfig.referralBonus;
                 // Commission cards
                 ruleComm.classList.toggle('hidden', !commOn);
-                ruleExample.classList.toggle('hidden', !commOn);
                 ruleReject.classList.toggle('hidden', !commOn);
                 if (commOn) {
                     const commPct = appConfig.referralCommission || 0;
                     document.getElementById('rule-commission-pct').textContent = commPct;
-                    const exCoins = appConfig.minWithdrawal || 1000;
-                    document.getElementById('rule-ex-coins').textContent = exCoins;
-                    document.getElementById('rule-ex-commission').textContent = Math.floor(exCoins * commPct / 100);
                 }
             }
 

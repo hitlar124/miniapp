@@ -453,14 +453,25 @@
                 </div>
             </div>
 
+            <!-- Workers Email List -->
+            <div class="glass p-5 mb-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-sm text-gray-300">📋 Worker Email List</h3>
+                    <span id="tw-email-count" class="text-xs text-purple-400 font-semibold"></span>
+                </div>
+                <div id="tw-email-list" class="space-y-1.5 max-h-96 overflow-y-auto text-sm text-gray-300">
+                    <p class="text-gray-500 text-xs">Refresh to load the list</p>
+                </div>
+            </div>
+
             <div class="glass p-5">
                 <h3 class="font-bold text-sm mb-3 text-gray-300">ℹ️ How it's counted</h3>
                 <div class="space-y-2 text-xs text-gray-400 leading-relaxed">
-                    <p>A user is counted as a "worker" if they completed <b class="text-white">at least one</b> of the following tasks today (IST):</p>
+                    <p>A user is counted as a "worker" if they <b class="text-white">actually completed</b> at least one of the following tasks today (IST) — just opening the app doesn't count:</p>
                     <ul class="list-disc list-inside space-y-1 ml-2">
-                        <li>📅 Daily Check-in</li>
-                        <li>▶️ Watch Video Ad</li>
-                        <li>🧮 Math Quiz</li>
+                        <li>📅 Daily Check-in (claimed)</li>
+                        <li>▶️ Watch Video Ad (at least 1 watched)</li>
+                        <li>🧮 Math Quiz (at least 1 solved)</li>
                     </ul>
                     <p class="mt-2">The count resets automatically every day at <b class="text-purple-300">12:00 AM IST</b>. A Telegram report is sent to admins at <b class="text-purple-300">11:59 PM IST</b> each day.</p>
                 </div>
@@ -1143,18 +1154,35 @@
             const res = await fetch('/api/admin/today-workers');
             const json = await res.json();
             if (json.ok) {
-                const count = json.count;
-                const date  = json.date;
+                const count  = json.count;
+                const date   = json.date;
+                const emails = json.emails || [];
                 // Update dashboard stat card
                 const statEl = document.getElementById('stat-today-workers');
                 const dateEl = document.getElementById('stat-today-workers-date');
                 if (statEl) statEl.textContent = count;
                 if (dateEl) dateEl.textContent = `${count} user(s) worked on ${date}`;
-                // Update dedicated page
+                // Update dedicated page count
                 const twCount = document.getElementById('tw-count');
                 const twDate  = document.getElementById('tw-date-label');
                 if (twCount) twCount.textContent = count;
                 if (twDate)  twDate.textContent  = `Date: ${date} (Indian Standard Time)`;
+                // Update email list
+                const listEl  = document.getElementById('tw-email-list');
+                const countEl = document.getElementById('tw-email-count');
+                if (listEl) {
+                    if (emails.length === 0) {
+                        listEl.innerHTML = '<p class="text-gray-500 text-xs">No workers yet today.</p>';
+                    } else {
+                        listEl.innerHTML = emails.map((em, i) =>
+                            `<div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5">
+                                <span class="text-purple-400 text-xs font-mono w-6 shrink-0">${i+1}.</span>
+                                <span class="text-sm text-gray-200 break-all">${em}</span>
+                            </div>`
+                        ).join('');
+                    }
+                }
+                if (countEl) countEl.textContent = emails.length ? `${emails.length} email(s)` : '';
             }
         } catch (e) { console.error('loadTodayWorkers error:', e); }
     };
