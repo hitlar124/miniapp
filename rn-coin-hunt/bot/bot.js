@@ -205,10 +205,35 @@ bot.on('callback_query', async (query) => {
             const state = wState[userId];
             if (!state) return;
             state.data.method = method;
+            state.step = 'ask_payment_detail';
+            bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId }).catch(() => {});
+            await bot.sendMessage(chatId,
+                `✅ Method: *${method}*\n\n📎 How would you like to provide your payment details?`,
+                { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [
+                    [{ text: '📸 Send QR Code', callback_data: 'wd|detail|qr' }, { text: '⌨️ Enter UPI ID', callback_data: 'wd|detail|upi' }],
+                    [{ text: '❌ Cancel', callback_data: 'wd|cancel' }]
+                ]}}
+            );
+            return;
+        }
+        if (data === 'wd|detail|qr') {
+            const state = wState[userId];
+            if (!state) return;
             state.step = 'ask_qr';
             bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId }).catch(() => {});
             await bot.sendMessage(chatId,
-                `✅ Method: *${method}*\n\n📸 Now send your *QR Code* image:`,
+                `📸 Please send your *QR Code* image:`,
+                { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❌ Cancel', callback_data: 'wd|cancel' }]] } }
+            );
+            return;
+        }
+        if (data === 'wd|detail|upi') {
+            const state = wState[userId];
+            if (!state) return;
+            state.step = 'ask_upi_id';
+            bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId }).catch(() => {});
+            await bot.sendMessage(chatId,
+                `⌨️ Please type your *UPI ID* (e.g. name@okhdfcbank):`,
                 { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❌ Cancel', callback_data: 'wd|cancel' }]] } }
             );
             return;
@@ -605,10 +630,13 @@ async function wConfirmAmount(chatId, userId, amount) {
 
     if (methods.length === 1) {
         state.data.method = methods[0];
-        state.step = 'ask_qr';
+        state.step = 'ask_payment_detail';
         bot.sendMessage(chatId,
-            `✅ Amount: *${inrDisplay}* | Method: *${methods[0]}*\n\n📸 Now send your *QR Code* image:`,
-            { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❌ Cancel', callback_data: 'wd|cancel' }]] } }
+            `✅ Amount: *${inrDisplay}* | Method: *${methods[0]}*\n\n📎 How would you like to provide your payment details?`,
+            { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [
+                [{ text: '📸 Send QR Code', callback_data: 'wd|detail|qr' }, { text: '⌨️ Enter UPI ID', callback_data: 'wd|detail|upi' }],
+                [{ text: '❌ Cancel', callback_data: 'wd|cancel' }]
+            ]}}
         );
     } else {
         state.step = 'choose_method';
@@ -628,6 +656,20 @@ async function handleWithdrawFlow(msg) {
     const photo = msg.photo;
     const state = wState[userId];
     if (!state) return;
+
+    if (state.step === 'ask_upi_id') {
+        const upiId = text.trim();
+        if (upiId.length < 3) return bot.sendMessage(chatId, '❌ Please enter a valid UPI ID (e.g. name@okhdfcbank).');
+        state.data.upiId = upiId;
+        state.data.qrCodeUrl = null;
+        state.data.qrLocalPath = null;
+        state.step = 'ask_account_name';
+        bot.sendMessage(chatId,
+            `✅ UPI ID: \`${upiId}\`\n\n👤 Now send your *Account Holder Name*:`,
+            { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❌ Cancel', callback_data: 'wd|cancel' }]] } }
+        );
+        return;
+    }
 
     if (state.step === 'ask_qr') {
         if (!photo) return bot.sendMessage(chatId, '📸 Please send a QR Code image.');
@@ -684,6 +726,11 @@ async function submitWithdrawal(chatId, userId) {
         await db.collection('users').doc(state.data.userId).update({
             balance: FieldValue.increment(-state.data.amount)
         });
+        const cfg = await getAppConfig();
+        const rateCoins = cfg.coinValueCoins || 1000;
+        const rateInr   = cfg.coinValueInr   || 10;
+        const inrDisplay = fmtCoinInr(state.data.amount, rateCoins, rateInr);
+
         const ref = await db.collection('withdrawals').add({
             userId: state.data.userId,
             userName: state.data.userName,
@@ -692,25 +739,32 @@ async function submitWithdrawal(chatId, userId) {
             amount: state.data.amount,
             method: state.data.method,
             accountName: state.data.accountName,
-            qrCodeUrl: state.data.qrCodeUrl,
+            upiId: state.data.upiId || null,
+            qrCodeUrl: state.data.qrCodeUrl || null,
             source: 'bot',
             status: 'pending',
             requestedAt: FieldValue.serverTimestamp()
         });
 
         // Notify admins
+        const upiLine = state.data.upiId ? `💳 UPI ID: \`${state.data.upiId}\`\n` : '';
         const caption =
             `🔔 *New Withdrawal Request*\n\n` +
             `👤 ${state.data.userName}\n📧 ${state.data.userEmail}\n` +
-            `💳 ${state.data.method} | 🪙 *${state.data.amount}*\n` +
-            `👤 ${state.data.accountName}\n🆔 \`${ref.id}\``;
+            `💳 ${state.data.method} | 🪙 *${inrDisplay}*\n` +
+            `👤 ${state.data.accountName}\n${upiLine}` +
+            `🆔 \`${ref.id}\``;
         for (const adminId of ADMIN_IDS) {
             try {
-                await bot.sendPhoto(adminId, state.data.qrLocalPath, {
-                    caption,
-                    parse_mode: 'Markdown',
-                    reply_markup: pendingActionsKb(ref.id)
-                });
+                if (state.data.qrLocalPath) {
+                    await bot.sendPhoto(adminId, state.data.qrLocalPath, {
+                        caption,
+                        parse_mode: 'Markdown',
+                        reply_markup: pendingActionsKb(ref.id)
+                    });
+                } else {
+                    await bot.sendMessage(adminId, caption, { parse_mode: 'Markdown', reply_markup: pendingActionsKb(ref.id) });
+                }
             } catch {
                 bot.sendMessage(adminId, caption, { parse_mode: 'Markdown', reply_markup: pendingActionsKb(ref.id) }).catch(() => {});
             }
@@ -829,12 +883,17 @@ async function renderPendingDoc(chatId, d, total) {
     const r = d.data();
     const date = r.requestedAt?.toDate?.()?.toLocaleString('en-IN') || 'N/A';
     const srcLabel = r.source === 'app' ? '📱 from App' : '🤖 from Bot';
+    const cfg = await getAppConfig();
+    const rateCoins = cfg.coinValueCoins || 1000;
+    const rateInr   = cfg.coinValueInr   || 10;
+    const inrDisplay = fmtCoinInr(r.amount, rateCoins, rateInr);
+    const upiLine = r.upiId ? `💳 UPI ID: \`${r.upiId}\`\n` : '';
     const caption =
         `🔔 *Withdrawal Request* (${total} pending)\n\n` +
         `🆔 \`${d.id}\`\n` +
         `👤 *${r.userName}*\n📧 ${r.userEmail}\n` +
-        `💳 *${r.method}* | 🪙 *${r.amount} Coins*\n` +
-        `👤 *${r.accountName}*\n` +
+        `💳 *${r.method}* | 🪙 *${inrDisplay}*\n` +
+        `👤 *${r.accountName}*\n${upiLine}` +
         `📥 ${srcLabel}\n` +
         `📅 ${date}`;
 
@@ -984,10 +1043,15 @@ async function showBin(chatId, adminId, msgId, fromPanel) {
     const d = docs[0];
     const r = d.data();
     const date = r.binnedAt?.toDate?.()?.toLocaleString('en-IN') || 'N/A';
+    const cfg = await getAppConfig();
+    const rateCoins = cfg.coinValueCoins || 1000;
+    const rateInr   = cfg.coinValueInr   || 10;
+    const inrDisplay = fmtCoinInr(r.amount, rateCoins, rateInr);
+    const upiLine = r.upiId ? `💳 UPI ID: \`${r.upiId}\`\n` : '';
     const caption =
         `🗑️ *Bin Request* (${docs.length} in bin)\n\n` +
         `🆔 \`${d.id}\`\n👤 *${r.userName}*\n📧 ${r.userEmail}\n` +
-        `💳 *${r.method}* | 🪙 *${r.amount} Coins*\n👤 *${r.accountName}*\n📅 Binned: ${date}`;
+        `💳 *${r.method}* | 🪙 *${inrDisplay}*\n👤 *${r.accountName}*\n${upiLine}📅 Binned: ${date}`;
 
     const qrSrc = resolveQrUrl(r.qrCodeUrl);
     try {

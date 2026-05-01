@@ -575,6 +575,14 @@
     function saveConfig(cfg) { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
 
     let db = null, auth = null;
+    let currentConfig = { coinValueCoins: 1000, coinValueInr: 10 };
+
+    function coinsToInr(coins) {
+        const c = currentConfig.coinValueCoins || 1000;
+        const r = currentConfig.coinValueInr || 10;
+        const inr = (coins / c) * r;
+        return inr % 1 === 0 ? `₹${inr}` : `₹${parseFloat(inr.toFixed(2))}`;
+    }
     let currentRejectId = null, currentRejectUserId = null, currentRejectAmount = 0;
     let currentEditUserId = null;
 
@@ -1052,7 +1060,7 @@
                     tr.dataset.uemail = (r.userEmail||'').toLowerCase();
                     tr.innerHTML = `
                         <td><p class="font-medium">${r.userName||'N/A'} ${sourceBadge}</p><p class="text-xs text-gray-500">${r.userEmail||''}</p></td>
-                        <td class="font-bold text-yellow-400">${r.amount}</td>
+                        <td><p class="font-bold text-yellow-400">${r.amount} Coins</p><p class="text-xs text-green-400">${coinsToInr(r.amount)}</p></td>
                         <td class="text-sm text-gray-300">${r.method||''}</td>
                         <td class="text-sm">${r.accountName||'N/A'}</td>
                         <td>${qrHtml}</td>
@@ -1100,7 +1108,7 @@
                         : '<span class="badge-green ml-1">🤖 Bot</span>';
                     tbody.innerHTML += `<tr>
                         <td><p class="font-medium">${r.userName||'N/A'} ${sourceBadge}</p><p class="text-xs text-gray-500">${r.userEmail||''}</p></td>
-                        <td class="font-bold text-yellow-400">${r.amount}</td>
+                        <td><p class="font-bold text-yellow-400">${r.amount} Coins</p><p class="text-xs text-green-400">${coinsToInr(r.amount)}</p></td>
                         <td class="text-sm text-gray-300">${r.method||''}</td>
                         <td>${qrHtml}</td>
                         <td class="text-xs text-gray-400">${date}</td>
@@ -1209,13 +1217,16 @@
     }
     function qrCellHtml(r) {
         const url = resolveQrUrl(r.qrCodeUrl);
+        const upi = r.upiId || '';
+        const upiBadge = upi ? `<span class="text-xs text-yellow-400 font-mono break-all block mt-1">📱 ${upi}</span>` : '';
         if (url) {
-            return `<img class="qr-img" src="${url}" onclick="openQR('${url}')" onerror="this.outerHTML='<span class=\\'text-red-400 text-xs\\'>Image unavailable</span>'">`;
+            const fallback = upi
+                ? `this.outerHTML='<span class=\\'text-xs text-yellow-400 font-mono break-all\\'>📱 ${upi}</span>'`
+                : `this.outerHTML='<span class=\\'text-red-400 text-xs\\'>Image unavailable</span>'`;
+            return `<div><img class="qr-img" src="${url}" onclick="openQR('${url}')" onerror="${fallback}">${upiBadge}</div>`;
         }
-        // App withdrawals (UPI only) — show UPI ID badge instead
-        const upi = r.upiId || (r.source === 'app' ? r.accountName : '');
         if (upi) {
-            return `<span class="text-xs text-yellow-400 font-mono break-all">📱 UPI: ${upi}</span>`;
+            return `<span class="text-xs text-yellow-400 font-mono break-all">📱 ${upi}</span>`;
         }
         return '<span class="text-gray-500 text-xs">N/A</span>';
     }
@@ -1398,6 +1409,7 @@
             getDoc(doc(db,'config','main')).then(snap => {
                 if (!snap.exists()) return;
                 const c = snap.data();
+                currentConfig = { coinValueCoins: c.coinValueCoins||1000, coinValueInr: c.coinValueInr||10 };
                 document.getElementById('s-daily-ad-limit').value = c.dailyAdLimit||10;
                 document.getElementById('s-ad-cooldown').value = c.adCooldown||60;
                 document.getElementById('s-daily-math-limit').value = c.dailyMathLimit||10;
