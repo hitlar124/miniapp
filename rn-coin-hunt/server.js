@@ -405,6 +405,32 @@ app.get('/api/admin/today-workers', async (req, res) => {
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// ── Eligibility Settings ──
+// Config stored in Firestore: config/eligibility
+// Structure: { withdrawal: [{taskId, label, required},...], coupon: [...], checkIn: [...] }
+
+app.get('/api/eligibility', async (req, res) => {
+    try {
+        let db = null;
+        try { db = require('firebase-admin/firestore').getFirestore(); } catch {}
+        if (!db) return res.json({ ok: true, config: { withdrawal: [], coupon: [], checkIn: [] } });
+        const snap = await db.collection('config').doc('eligibility').get();
+        const config = snap.exists ? snap.data() : { withdrawal: [], coupon: [], checkIn: [] };
+        res.json({ ok: true, config });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.post('/api/admin/eligibility', express.json(), async (req, res) => {
+    try {
+        let db = null;
+        try { db = require('firebase-admin/firestore').getFirestore(); } catch {}
+        if (!db) return res.status(503).json({ ok: false, error: 'Firebase not configured' });
+        const { withdrawal, coupon, checkIn } = req.body;
+        await db.collection('config').doc('eligibility').set({ withdrawal: withdrawal || [], coupon: coupon || [], checkIn: checkIn || [] });
+        res.json({ ok: true });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── Nightly 11:59 PM IST report to Telegram admins ──
 function scheduleNightlyReport(botModule) {
     // 23:59 IST = 18:29 UTC (IST is UTC+5:30)

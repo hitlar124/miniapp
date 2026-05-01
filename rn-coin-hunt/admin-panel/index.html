@@ -199,6 +199,10 @@
                 <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 Today's Workers
             </div>
+            <div class="nav-link" onclick="navTo('pg-eligibility')">
+                <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Eligibility Rules
+            </div>
             <div class="nav-link" onclick="navTo('pg-settings')">
                 <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 Settings
@@ -461,6 +465,80 @@
                     <p class="mt-2">The count resets automatically every day at <b class="text-purple-300">12:00 AM IST</b>. A Telegram report is sent to admins at <b class="text-purple-300">11:59 PM IST</b> each day.</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Eligibility Rules Page -->
+        <div id="pg-eligibility" class="page">
+            <div class="flex items-center justify-between mb-5 gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold">Eligibility Rules</h1>
+                    <p class="text-gray-500 text-sm mt-1">Set minimum daily task requirements for each action</p>
+                </div>
+                <button onclick="saveEligibility()" class="btn-primary px-5 py-2 rounded-xl text-sm font-bold">💾 Save All Rules</button>
+            </div>
+
+            <!-- Task legend -->
+            <div class="glass p-4 mb-5 flex flex-wrap gap-3 text-xs text-gray-400">
+                <span class="text-gray-300 font-semibold mr-1">Available Tasks:</span>
+                <span class="bg-blue-500/15 text-blue-300 px-2 py-1 rounded-full">▶️ Ad Watch (<code>adWatch</code>)</span>
+                <span class="bg-green-500/15 text-green-300 px-2 py-1 rounded-full">🧮 Math Quiz (<code>mathQuiz</code>)</span>
+                <span class="text-gray-500 italic">More tasks added here automatically when you create them.</span>
+            </div>
+
+            <!-- Three sections -->
+            <div class="space-y-6">
+
+                <!-- Withdrawal Eligibility -->
+                <div class="glass p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-yellow-400 text-xl">💸</span>
+                            <div>
+                                <h2 class="font-bold text-base">Withdrawal Eligibility</h2>
+                                <p class="text-gray-500 text-xs">User must complete ALL listed tasks (minimum count each) to request withdrawal</p>
+                            </div>
+                        </div>
+                        <button onclick="addEligibilityRow('elig-withdrawal-rows')" class="text-xs text-blue-400 hover:text-blue-300 border border-blue-400/30 px-3 py-1.5 rounded-lg">+ Add Task</button>
+                    </div>
+                    <div id="elig-withdrawal-rows" class="space-y-2"></div>
+                    <p class="text-gray-600 text-xs mt-3">If no tasks are added, withdrawal is always allowed (no daily requirement).</p>
+                </div>
+
+                <!-- Coupon Claim Eligibility -->
+                <div class="glass p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-green-400 text-xl">🎁</span>
+                            <div>
+                                <h2 class="font-bold text-base">Coupon Claim Eligibility</h2>
+                                <p class="text-gray-500 text-xs">User must complete ALL listed tasks (minimum count each) to claim a coupon</p>
+                            </div>
+                        </div>
+                        <button onclick="addEligibilityRow('elig-coupon-rows')" class="text-xs text-blue-400 hover:text-blue-300 border border-blue-400/30 px-3 py-1.5 rounded-lg">+ Add Task</button>
+                    </div>
+                    <div id="elig-coupon-rows" class="space-y-2"></div>
+                    <p class="text-gray-600 text-xs mt-3">If no tasks are added, coupon claim is always allowed (no daily requirement).</p>
+                </div>
+
+                <!-- Daily Check-in Eligibility -->
+                <div class="glass p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-purple-400 text-xl">📅</span>
+                            <div>
+                                <h2 class="font-bold text-base">Daily Check-in Eligibility</h2>
+                                <p class="text-gray-500 text-xs">User must complete ALL listed tasks (minimum count each) to claim daily check-in</p>
+                            </div>
+                        </div>
+                        <button onclick="addEligibilityRow('elig-checkin-rows')" class="text-xs text-blue-400 hover:text-blue-300 border border-blue-400/30 px-3 py-1.5 rounded-lg">+ Add Task</button>
+                    </div>
+                    <div id="elig-checkin-rows" class="space-y-2"></div>
+                    <p class="text-gray-600 text-xs mt-3">If no tasks are added, check-in is always allowed (no daily requirement).</p>
+                </div>
+
+            </div>
+
+            <div id="elig-save-msg" class="hidden mt-4 p-3 rounded-xl text-sm text-center font-semibold"></div>
         </div>
 
         <!-- Settings Page -->
@@ -979,11 +1057,12 @@
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId)?.classList.add('active');
         document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
-        const idx = ['pg-dashboard','pg-users','pg-withdrawals','pg-bin','pg-coupons','pg-broadcast','pg-banned','pg-delete-user','pg-today-workers','pg-settings'];
+        const idx = ['pg-dashboard','pg-users','pg-withdrawals','pg-bin','pg-coupons','pg-broadcast','pg-banned','pg-delete-user','pg-today-workers','pg-eligibility','pg-settings'];
         const navEls = document.querySelectorAll('.nav-link');
         const i = idx.indexOf(pageId);
         if (i >= 0 && navEls[i]) navEls[i].classList.add('active');
         if (pageId === 'pg-settings') prefillSettings();
+        if (pageId === 'pg-eligibility') loadEligibilitySettings();
         if (pageId === 'pg-banned') loadBannedUsers();
         if (pageId === 'pg-delete-user') resetDeleteUserPage();
         if (pageId === 'pg-today-workers') loadTodayWorkers();
@@ -1078,6 +1157,92 @@
                 if (twDate)  twDate.textContent  = `Date: ${date} (Indian Standard Time)`;
             }
         } catch (e) { console.error('loadTodayWorkers error:', e); }
+    };
+
+    // ── Eligibility Settings ──
+    const AVAILABLE_TASKS = [
+        { taskId: 'adWatch',  label: 'Ad Watch',   icon: '▶️' },
+        { taskId: 'mathQuiz', label: 'Math Quiz',  icon: '🧮' },
+    ];
+
+    function buildEligibilityRow(containerId, taskId, label, required) {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3';
+        div.innerHTML = `
+            <select class="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" data-field="taskId">
+                ${AVAILABLE_TASKS.map(t => `<option value="${t.taskId}" ${t.taskId===taskId?'selected':''}>${t.icon} ${t.label}</option>`).join('')}
+            </select>
+            <div class="flex items-center gap-2 shrink-0">
+                <span class="text-gray-400 text-sm">Min:</span>
+                <input type="number" min="1" max="9999" value="${required||1}" data-field="required"
+                    class="w-20 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white text-center" placeholder="1">
+                <span class="text-gray-500 text-xs">/day</span>
+            </div>
+            <button onclick="this.closest('div').remove()" class="text-red-400 hover:text-red-300 text-lg leading-none shrink-0">✕</button>
+        `;
+        document.getElementById(containerId).appendChild(div);
+    }
+
+    window.addEligibilityRow = function(containerId) {
+        buildEligibilityRow(containerId, 'adWatch', 'Ad Watch', 1);
+    };
+
+    window.loadEligibilitySettings = async function() {
+        try {
+            const res = await fetch('/api/eligibility');
+            const json = await res.json();
+            const config = json.config || { withdrawal: [], coupon: [], checkIn: [] };
+            ['withdrawal','coupon','checkIn'].forEach(type => {
+                const elId = type === 'checkIn' ? 'elig-checkin-rows' : `elig-${type}-rows`;
+                const container = document.getElementById(elId);
+                if (!container) return;
+                container.innerHTML = '';
+                (config[type] || []).forEach(row => {
+                    buildEligibilityRow(elId, row.taskId, row.label, row.required);
+                });
+            });
+        } catch (e) { console.error('loadEligibilitySettings error:', e); }
+    };
+
+    function collectEligibilityRows(containerId) {
+        const rows = [];
+        document.querySelectorAll(`#${containerId} > div`).forEach(div => {
+            const taskId  = div.querySelector('[data-field="taskId"]')?.value;
+            const required = parseInt(div.querySelector('[data-field="required"]')?.value, 10) || 1;
+            const task = AVAILABLE_TASKS.find(t => t.taskId === taskId);
+            if (taskId) rows.push({ taskId, label: task?.label || taskId, required });
+        });
+        return rows;
+    }
+
+    window.saveEligibility = async function() {
+        const msgEl = document.getElementById('elig-save-msg');
+        msgEl.className = 'mt-4 p-3 rounded-xl text-sm text-center font-semibold text-yellow-300 bg-yellow-500/10';
+        msgEl.textContent = 'Saving…';
+        msgEl.classList.remove('hidden');
+        try {
+            const payload = {
+                withdrawal: collectEligibilityRows('elig-withdrawal-rows'),
+                coupon:     collectEligibilityRows('elig-coupon-rows'),
+                checkIn:    collectEligibilityRows('elig-checkin-rows'),
+            };
+            const res = await fetch('/api/admin/eligibility', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const json = await res.json();
+            if (json.ok) {
+                msgEl.className = 'mt-4 p-3 rounded-xl text-sm text-center font-semibold text-green-300 bg-green-500/10';
+                msgEl.textContent = '✅ Eligibility rules saved successfully!';
+            } else {
+                throw new Error(json.error || 'Unknown error');
+            }
+        } catch (e) {
+            msgEl.className = 'mt-4 p-3 rounded-xl text-sm text-center font-semibold text-red-300 bg-red-500/10';
+            msgEl.textContent = '❌ Failed to save: ' + e.message;
+        }
+        setTimeout(() => msgEl.classList.add('hidden'), 4000);
     };
 
     let userFilterMode = 'all';

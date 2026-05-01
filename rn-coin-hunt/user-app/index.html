@@ -502,6 +502,23 @@
         </div>
     </div>
 
+    <!-- ELIGIBILITY BLOCK MODAL -->
+    <div id="elig-modal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+        <div class="glass-card p-6 w-full max-w-[340px]">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="text-3xl" id="elig-modal-icon">🔒</span>
+                <div>
+                    <h3 class="font-bold text-base" id="elig-modal-title">Not Eligible Yet</h3>
+                    <p class="text-xs text-gray-400" id="elig-modal-sub">Complete daily tasks to unlock this</p>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 mb-4">Complete the following tasks today to proceed:</p>
+            <div id="elig-modal-rows" class="space-y-3 mb-5"></div>
+            <button onclick="document.getElementById('elig-modal').classList.add('hidden')"
+                class="w-full py-3 rounded-xl btn-neon font-bold text-sm">OK, Got it!</button>
+        </div>
+    </div>
+
     <!-- MATH QUIZ MODAL -->
     <div id="math-quiz-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
         <div class="glass-card p-6 w-full max-w-[320px] text-center">
@@ -938,6 +955,9 @@
         window.handleCheckIn = async function() {
             const today = getISTDateString();
             if (userData.lastCheckInDate === today) return showAlert('Already claimed today!');
+            // ── Eligibility check ──
+            const eligCI = await checkEligibility('checkIn');
+            if (!eligCI.eligible) return showEligibilityModal('checkIn', eligCI.unmet);
             // Show an ad first, then credit the reward.
             try {
                 await playMonetagAd();
@@ -989,7 +1009,9 @@
         };
 
         // ── Coupon claim (with ad before crediting) ──────────────────
-        window.openCouponModal = function() {
+        window.openCouponModal = async function() {
+            const eligCP = await checkEligibility('coupon');
+            if (!eligCP.eligible) return showEligibilityModal('coupon', eligCP.unmet);
             document.getElementById('coupon-code-input').value = '';
             document.getElementById('coupon-modal').classList.remove('hidden');
         };
@@ -1242,6 +1264,83 @@
             } catch (e) { showAlert(e.message); }
         }
 
+        // ── Eligibility check helpers ──
+        let _eligConfig = null; // cached config
+
+        async function fetchEligibilityConfig() {
+            if (_eligConfig) return _eligConfig;
+            try {
+                const r = await fetch('/api/eligibility');
+                const j = await r.json();
+                _eligConfig = j.config || { withdrawal: [], coupon: [], checkIn: [] };
+            } catch { _eligConfig = { withdrawal: [], coupon: [], checkIn: [] }; }
+            return _eligConfig;
+        }
+
+        // Maps taskId → { done (today's count), label }
+        function getTaskProgress() {
+            const today = getISTDateString();
+            return {
+                adWatch:  {
+                    label: 'Ad Watch',
+                    icon: '▶️',
+                    done: userData.lastAdWatchDate === today ? (userData.dailyAdCount || 0) : 0,
+                },
+                mathQuiz: {
+                    label: 'Math Quiz',
+                    icon: '🧮',
+                    done: userData.lastMathDate === today ? (userData.dailyMathCount || 0) : 0,
+                },
+            };
+        }
+
+        // Returns { eligible: bool, unmet: [{icon,label,done,required}] }
+        async function checkEligibility(type) {
+            const config = await fetchEligibilityConfig();
+            const rules = config[type] || [];
+            if (!rules.length) return { eligible: true, unmet: [] };
+            const progress = getTaskProgress();
+            const unmet = [];
+            for (const rule of rules) {
+                const p = progress[rule.taskId] || { label: rule.label, icon: '📋', done: 0 };
+                if (p.done < rule.required) {
+                    unmet.push({ icon: p.icon, label: rule.label, done: p.done, required: rule.required });
+                }
+            }
+            return { eligible: unmet.length === 0, unmet };
+        }
+
+        const ELIG_META = {
+            withdrawal: { icon: '💸', title: 'Withdrawal Not Unlocked', sub: 'Complete today\'s tasks to withdraw' },
+            coupon:     { icon: '🎁', title: 'Coupon Claim Not Unlocked', sub: 'Complete today\'s tasks to claim coupon' },
+            checkIn:    { icon: '📅', title: 'Check-in Not Unlocked', sub: 'Complete today\'s tasks to claim check-in' },
+        };
+
+        function showEligibilityModal(type, unmet) {
+            const meta = ELIG_META[type] || ELIG_META.withdrawal;
+            document.getElementById('elig-modal-icon').textContent = meta.icon;
+            document.getElementById('elig-modal-title').textContent = meta.title;
+            document.getElementById('elig-modal-sub').textContent = meta.sub;
+            const rows = document.getElementById('elig-modal-rows');
+            rows.innerHTML = '';
+            unmet.forEach(u => {
+                const done = Math.min(u.done, u.required);
+                const pct  = Math.round((done / u.required) * 100);
+                rows.innerHTML += `
+                    <div class="bg-white/5 rounded-xl p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-semibold">${u.icon} ${u.label}</span>
+                            <span class="text-sm font-bold ${done >= u.required ? 'text-green-400' : 'text-yellow-300'}">${done}/${u.required}</span>
+                        </div>
+                        <div class="w-full bg-white/10 rounded-full h-2">
+                            <div class="h-2 rounded-full ${done >= u.required ? 'bg-green-400' : 'bg-yellow-400'} transition-all" style="width:${pct}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1.5">${u.required - done > 0 ? `${u.required - done} more needed today` : '✅ Done!'}</p>
+                    </div>`;
+            });
+            document.getElementById('elig-modal').classList.remove('hidden');
+        }
+
         // ── Withdrawal: in-app UPI form + paginated history ──
         let wfState = { amount: null, method: null };
         let historyAll = [];   // all docs newest→oldest
@@ -1357,6 +1456,9 @@
             const acctName = document.getElementById('wf-account-name').value.trim();
             const upi = document.getElementById('wf-upi').value.trim();
             if (hasPendingWithdrawal()) return showAlert('You already have a pending withdrawal request. Please wait until it is approved or rejected before submitting another one.');
+            // ── Eligibility check ──
+            const eligW = await checkEligibility('withdrawal');
+            if (!eligW.eligible) return showEligibilityModal('withdrawal', eligW.unmet);
             if (!wfState.amount) return showAlert('Please choose an amount.');
             if (!wfState.method) return showAlert('Please choose a payment method.');
             if (!acctName || acctName.length < 2) return showAlert('Please enter your Account Holder Name.');
