@@ -697,6 +697,12 @@
         if (sessionStorage.getItem('rncch_logged_in') === '1') {
             showSection('dashboard-section');
             loadDashboard();
+            // Re-sync credentials to server so API calls (delete, ban, etc.) work after a server restart
+            const _su = sessionStorage.getItem('rncch_login_u') || '';
+            const _sp = sessionStorage.getItem('rncch_login_p') || '';
+            if (_su && _sp) {
+                try { fetch('/api/admin/save-creds', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ u: _su, p: _sp }) }); } catch {}
+            }
             // Auto-sync local config to server in background (so other browsers can get it)
             if (cfg && cfg.firebase) pushConfigToServer(cfg).catch(() => {});
         } else {
@@ -862,8 +868,8 @@
             try { fbPass = decodeURIComponent(escape(atob(cfg.adminFbPass))); } catch(e) { try { fbPass = atob(cfg.adminFbPass); } catch(e2) { fbPass = cfg.adminFbPass; } }
             signInWithEmailAndPassword(auth, cfg.adminEmail, fbPass).catch(() => {});
         }
-        // Sync creds to server (needed for /api/admin/broadcast)
-        try { fetch('/api/admin/save-creds', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ u, p }) }); } catch {}
+        // Sync creds to server (needed for /api/admin/* endpoints) — must await so creds are stored before any API call
+        try { await fetch('/api/admin/save-creds', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ u, p }) }); } catch {}
         sessionStorage.setItem('rncch_logged_in', '1');
         sessionStorage.setItem('rncch_login_u', u);
         sessionStorage.setItem('rncch_login_p', p);
