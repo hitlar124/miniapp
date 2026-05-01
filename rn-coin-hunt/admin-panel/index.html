@@ -1363,6 +1363,32 @@
                 adminApiCall('/api/admin/notify-user', {
                     userEmail: userEmail||r.userEmail||'', status:'approved', amount:r.amount||0
                 }).catch(()=>{});
+                // Give referral commission to the referrer (if this user was referred by someone)
+                try {
+                    const userSnap2 = await getDoc(doc(db, 'users', userId));
+                    if (userSnap2.exists() && userSnap2.data().referredBy) {
+                        const referralSnap = await getDocs(query(collection(db,'referrals'), where('referredId','==',userId)));
+                        if (!referralSnap.empty) {
+                            const referrerId = referralSnap.docs[0].data().referrerId;
+                            const commissionPct = c.referralCommission || 0;
+                            if (commissionPct > 0) {
+                                const commissionCoins = Math.floor((r.amount||0) * commissionPct / 100);
+                                if (commissionCoins > 0) {
+                                    await updateDoc(doc(db,'users',referrerId), { balance: increment(commissionCoins) });
+                                    await addDoc(collection(db,'earn_history'), {
+                                        userId: referrerId,
+                                        type: 'referral_commission',
+                                        amount: commissionCoins,
+                                        label: `Referral commission: ${r.userName||userId}'s ${r.amount||0} coin withdrawal approved`,
+                                        fromUserId: userId,
+                                        fromUserName: r.userName||'',
+                                        createdAt: serverTimestamp()
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } catch(ce) { console.error('Commission err:', ce); }
                 showAlert('Approved! User notified.');
             } catch(e) { showAlert(e.message); }
         });

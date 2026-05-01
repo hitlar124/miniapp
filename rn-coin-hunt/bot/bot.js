@@ -952,6 +952,35 @@ async function doAccept(chatId, adminId, reqId, msgId) {
         bot.sendMessage(chatId, `✅ Approved ${r.userName}'s ${fmtK(r.amount)} coins (${inrFmtApprove}) request.`);
         if (!adminSkipped[adminId]) adminSkipped[adminId] = [];
         adminSkipped[adminId].push(reqId);
+        // Give referral commission to the referrer (if this user was referred by someone)
+        try {
+            const userSnap = await db.collection('users').doc(r.userId).get();
+            if (userSnap.exists && userSnap.data().referredBy) {
+                const referralSnap = await db.collection('referrals')
+                    .where('referredId', '==', r.userId).limit(1).get();
+                if (!referralSnap.empty) {
+                    const referrerId = referralSnap.docs[0].data().referrerId;
+                    const commissionPct = cfg.referralCommission || 0;
+                    if (commissionPct > 0) {
+                        const commissionCoins = Math.floor(r.amount * commissionPct / 100);
+                        if (commissionCoins > 0) {
+                            await db.collection('users').doc(referrerId).update({
+                                balance: FieldValue.increment(commissionCoins)
+                            });
+                            await db.collection('earn_history').add({
+                                userId: referrerId,
+                                type: 'referral_commission',
+                                amount: commissionCoins,
+                                label: `Referral commission: ${r.userName || r.userId}'s ${fmtK(r.amount)} coin withdrawal approved`,
+                                fromUserId: r.userId,
+                                fromUserName: r.userName || '',
+                                createdAt: FieldValue.serverTimestamp()
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (e) { console.error('Referral commission error:', e); }
         setTimeout(() => showPending(chatId, adminId, null, false), 800);
     } catch (e) { console.error(e); bot.sendMessage(chatId, '❌ Error.'); }
 }
