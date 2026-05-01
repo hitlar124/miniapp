@@ -579,12 +579,19 @@
             if (!name || !email || !pw) return showAlert('Please fill all fields.');
             if (pw.length < 6) return showAlert('Password must be at least 6 characters.');
             try {
-                // Device fingerprint check — one account per device
+                // Device fingerprint check via server (avoids Firestore auth-rules block for unauthenticated users)
                 const fp = getDeviceFingerprint();
-                const existingSnap = await getDocs(query(collection(db, 'users'), where('deviceFingerprint', '==', fp)));
-                if (!existingSnap.empty) {
-                    return showAlert('An account already exists on this device. Please log in instead.');
-                }
+                try {
+                    const chkResp = await fetch('/api/check-device', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fingerprint: fp })
+                    });
+                    const chk = await chkResp.json();
+                    if (chk.exists) {
+                        return showAlert('Not permitted to create multiple accounts from the same device. Please log in instead.');
+                    }
+                } catch (_) { /* server unavailable — allow registration, fingerprint saved anyway */ }
                 const cred = await createUserWithEmailAndPassword(auth, email, pw);
                 const refCode = Math.random().toString(36).substring(2, 8).toUpperCase();
                 await setDoc(doc(db, 'users', cred.user.uid), {

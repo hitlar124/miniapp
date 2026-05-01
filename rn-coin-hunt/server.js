@@ -206,6 +206,19 @@ app.post('/api/admin/delete-user', async (req, res) => {
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// ── Check if device fingerprint already has an account (unauthenticated users can't query Firestore) ──
+app.post('/api/check-device', async (req, res) => {
+    const { fingerprint } = req.body || {};
+    if (!fingerprint) return res.status(400).json({ ok: false, error: 'fingerprint required' });
+    try {
+        let db = null;
+        try { db = require('firebase-admin/firestore').getFirestore(); } catch {}
+        if (!db) return res.status(503).json({ ok: false, exists: false });
+        const snap = await db.collection('users').where('deviceFingerprint', '==', fingerprint).limit(1).get();
+        res.json({ ok: true, exists: !snap.empty });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── Apply referral code (server-side, bypasses Firestore auth rules so referrer gets credited) ──
 app.post('/api/apply-referral', async (req, res) => {
     const { referralCode, userId, userName, userEmail } = req.body || {};
