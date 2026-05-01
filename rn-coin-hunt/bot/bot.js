@@ -112,8 +112,19 @@ async function sendUserMainMenu(chatId, fromName, startParam, asNewMessage = tru
 // ─────────────────────────────────────────────────────────────────
 bot.onText(/\/start(.*)/, async (msg, match) => {
     const chatId = msg.chat.id;
+    const userId = String(msg.from.id);
     const param = (match[1] || '').trim().replace(/^\//, '');
     const name = msg.from.first_name || msg.from.username || '';
+    // Maintenance mode check — admins bypass it
+    if (!ADMIN_IDS.includes(userId) && db) {
+        try {
+            const cfgSnap = await db.collection('config').doc('main').get();
+            const appEnabled = cfgSnap.exists ? cfgSnap.data().appEnabled : true;
+            if (appEnabled === false) {
+                return bot.sendMessage(chatId, '🔒 The app is currently under maintenance. Please check back later.');
+            }
+        } catch {}
+    }
     await sendUserMainMenu(chatId, name, param, true);
 });
 
@@ -1160,33 +1171,35 @@ async function handleAdminFlow(msg) {
         return;
     }
 
-    // Ban / Unban user by Telegram ID
+    // Ban / Unban user by Email Address
     if ((state.flow === 'banuser' || state.flow === 'unbanuser') && state.step === 'await_userid') {
-        const targetTgId = text.trim();
-        if (!/^\d+$/.test(targetTgId)) return bot.sendMessage(chatId, '❌ Please send a valid numeric Telegram User ID.');
+        const emailInput = text.trim().toLowerCase();
+        if (!emailInput.includes('@')) return bot.sendMessage(chatId, '❌ Please send a valid email address.');
         delete adminState[adminId];
         const wantBan = state.flow === 'banuser';
         if (!db) return bot.sendMessage(chatId, '⚠️ Database not configured.', { reply_markup: adminPanelKb() });
         try {
-            const snap = await db.collection('users').where('telegramId', '==', targetTgId).limit(1).get();
+            const snap = await db.collection('users').where('email', '==', emailInput).limit(1).get();
             if (snap.empty) {
-                return bot.sendMessage(chatId, `❌ No user found with Telegram ID \`${targetTgId}\`.`, { parse_mode: 'Markdown', reply_markup: adminPanelKb() });
+                return bot.sendMessage(chatId, `❌ No user found with email \`${emailInput}\`.`, { parse_mode: 'Markdown', reply_markup: adminPanelKb() });
             }
             const userDoc = snap.docs[0];
             const uData = userDoc.data();
             await userDoc.ref.update({ isBlocked: wantBan });
             bot.sendMessage(chatId,
-                `${wantBan ? '🚫 Banned' : '✅ Unbanned'}: *${uData.name || targetTgId}*`,
+                `${wantBan ? '🚫 Banned' : '✅ Unbanned'}: *${uData.name || emailInput}*\n📧 ${emailInput}`,
                 { parse_mode: 'Markdown', reply_markup: adminPanelKb() }
             );
-            // Notify the user
-            try {
-                await bot.sendMessage(targetTgId,
-                    wantBan
-                        ? '⛔ Your account has been suspended by the admin.'
-                        : '✅ Your account has been reactivated by the admin.'
-                );
-            } catch {}
+            // Notify the user via Telegram if they have telegramId linked
+            if (uData.telegramId) {
+                try {
+                    await bot.sendMessage(uData.telegramId,
+                        wantBan
+                            ? '⛔ Your account has been suspended by the admin.'
+                            : '✅ Your account has been reactivated by the admin.'
+                    );
+                } catch {}
+            }
         } catch (e) {
             bot.sendMessage(chatId, '❌ Error: ' + e.message, { reply_markup: adminPanelKb() });
         }
@@ -1198,7 +1211,7 @@ async function startBanUser(chatId, adminId, msgId, wantBan) {
     bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId }).catch(() => {});
     adminState[adminId] = { flow: wantBan ? 'banuser' : 'unbanuser', step: 'await_userid' };
     bot.sendMessage(chatId,
-        `${wantBan ? '🚫 Ban User' : '✅ Unban User'}\n\nSend the *Telegram User ID* of the user you want to ${wantBan ? 'ban' : 'unban'}:`,
+        `${wantBan ? '🚫 Ban User' : '✅ Unban User'}\n\nSend the *Email Address* of the user you want to ${wantBan ? 'ban' : 'unban'}:`,
         { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❌ Cancel', callback_data: 'a|cancel' }]] } }
     );
 }

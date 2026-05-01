@@ -187,6 +187,10 @@
                 <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
                 Notifications
             </div>
+            <div class="nav-link" onclick="navTo('pg-banned')">
+                <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                Banned Users
+            </div>
             <div class="nav-link" onclick="navTo('pg-settings')">
                 <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 Settings
@@ -250,10 +254,11 @@
                 </div>
             </div>
 
-            <!-- Filter tabs: All / Active / Blocked -->
+            <!-- Filter tabs: All / Active / Inactive / Blocked -->
             <div class="flex gap-1 bg-black/30 border border-white/10 rounded-xl p-1 mb-5 w-fit">
                 <button class="tab-btn active" id="uf-all" onclick="setUserFilter('all')">All</button>
                 <button class="tab-btn" id="uf-active" onclick="setUserFilter('active')">Active</button>
+                <button class="tab-btn" id="uf-inactive" onclick="setUserFilter('inactive')">Inactive</button>
                 <button class="tab-btn" id="uf-blocked" onclick="setUserFilter('blocked')">Blocked</button>
             </div>
 
@@ -289,7 +294,13 @@
 
         <!-- Withdrawals Page -->
         <div id="pg-withdrawals" class="page">
-            <h1 class="text-2xl font-bold mb-5">Withdrawal Requests</h1>
+            <div class="flex items-center justify-between mb-5 gap-4 flex-wrap">
+                <h1 class="text-2xl font-bold">Withdrawal Requests</h1>
+                <div class="flex items-center bg-black/30 border border-white/10 rounded-xl px-3 py-2 w-72">
+                    <svg class="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" id="withdrawal-search" placeholder="Search by name or email..." class="bg-transparent border-none text-white w-full focus:outline-none text-sm" oninput="applyWithdrawalFilter()">
+                </div>
+            </div>
             <div class="glass overflow-hidden"><div class="overflow-x-auto">
                 <table><thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Account Name</th><th>QR Code</th><th>Date</th><th>Actions</th></tr></thead>
                 <tbody id="withdrawals-tbody"></tbody></table>
@@ -323,6 +334,21 @@
             <div class="glass overflow-hidden"><div class="overflow-x-auto">
                 <table><thead><tr><th>Code</th><th>Coins</th><th>Used</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
                 <tbody id="coupons-tbody"></tbody></table>
+            </div></div>
+        </div>
+
+        <!-- Banned Users Page -->
+        <div id="pg-banned" class="page">
+            <div class="flex items-center justify-between mb-5 gap-4 flex-wrap">
+                <h1 class="text-2xl font-bold">Banned Users <span class="text-sm font-normal text-gray-400">(<span id="stat-banned-count">0</span>)</span></h1>
+                <div class="flex items-center bg-black/30 border border-white/10 rounded-xl px-3 py-2 w-72">
+                    <svg class="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" id="banned-search" placeholder="Search by email..." class="bg-transparent border-none text-white w-full focus:outline-none text-sm" oninput="applyBannedFilter()">
+                </div>
+            </div>
+            <div class="glass overflow-hidden"><div class="overflow-x-auto">
+                <table><thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>Action</th></tr></thead>
+                <tbody id="banned-tbody"></tbody></table>
             </div></div>
         </div>
 
@@ -417,6 +443,32 @@
                             <div><label class="field-label">Exchange: ₹</label><input type="number" id="s-coin-value-inr" class="inp" placeholder="10"></div>
                             <div class="col-span-3"><label class="field-label">Payment Methods — comma separated (e.g. UPI, Paytm, bKash)</label><input type="text" id="s-payment-methods" class="inp" placeholder="UPI, Paytm, bKash"></div>
                             <div class="col-span-3"><label class="field-label">Withdrawal Options (Coin amount) — comma separated (e.g. 1000, 2000, 5000, 10000)</label><input type="text" id="s-withdrawal-options" class="inp" placeholder="1000, 2000, 5000, 10000"></div>
+                        </div>
+                    </div>
+
+                    <div class="glass p-5 col-span-2">
+                        <h3 class="font-bold text-yellow-400 mb-4">App Controls</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="flex items-center justify-between bg-black/20 p-3 rounded-xl border border-white/5">
+                                <div>
+                                    <p class="font-semibold text-sm">🟢 App Enabled</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">Turn off to put app in maintenance mode</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer ml-3">
+                                    <input type="checkbox" id="s-app-enabled" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-green-500 peer-focus:outline-none transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between bg-black/20 p-3 rounded-xl border border-white/5">
+                                <div>
+                                    <p class="font-semibold text-sm">🛡️ Ad Blocker Detection</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">Block users who have ad blockers enabled</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer ml-3">
+                                    <input type="checkbox" id="s-adblocker-check" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-yellow-500 peer-focus:outline-none transition-colors after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                                </label>
+                            </div>
                         </div>
                     </div>
 
@@ -793,11 +845,12 @@
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId)?.classList.add('active');
         document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
-        const idx = ['pg-dashboard','pg-users','pg-withdrawals','pg-bin','pg-coupons','pg-broadcast','pg-settings'];
+        const idx = ['pg-dashboard','pg-users','pg-withdrawals','pg-bin','pg-coupons','pg-broadcast','pg-banned','pg-settings'];
         const navEls = document.querySelectorAll('.nav-link');
         const i = idx.indexOf(pageId);
         if (i >= 0 && navEls[i]) navEls[i].classList.add('active');
         if (pageId === 'pg-settings') prefillSettings();
+        if (pageId === 'pg-banned') loadBannedUsers();
     };
 
     window.settingsTab = function(tabId) {
@@ -872,7 +925,7 @@
     let userFilterMode = 'all';
     window.setUserFilter = function(mode) {
         userFilterMode = mode;
-        ['all','active','blocked'].forEach(m => document.getElementById('uf-'+m)?.classList.toggle('active', m===mode));
+        ['all','active','inactive','blocked'].forEach(m => document.getElementById('uf-'+m)?.classList.toggle('active', m===mode));
         applyUserFilters();
     };
     function applyUserFilters() {
@@ -881,8 +934,13 @@
             const name = r.querySelector('.u-name')?.textContent.toLowerCase()||'';
             const email = r.querySelector('.u-email')?.textContent.toLowerCase()||'';
             const blocked = r.dataset.blocked === '1';
+            const inactive = r.dataset.inactive === '1'; // balance=0 and not blocked
             const textMatch = name.includes(t)||email.includes(t);
-            const filterMatch = userFilterMode === 'all' || (userFilterMode === 'active' && !blocked) || (userFilterMode === 'blocked' && blocked);
+            let filterMatch = false;
+            if (userFilterMode === 'all') filterMatch = true;
+            else if (userFilterMode === 'active') filterMatch = !blocked && !inactive;
+            else if (userFilterMode === 'inactive') filterMatch = !blocked && inactive;
+            else if (userFilterMode === 'blocked') filterMatch = blocked;
             r.style.display = (textMatch && filterMatch) ? '' : 'none';
         });
     }
@@ -895,13 +953,19 @@
             snap.forEach(d => {
                 const u = d.data();
                 const blocked = u.isBlocked || false;
+                const inactive = !blocked && (u.balance || 0) === 0;
                 const tr = document.createElement('tr');
                 tr.dataset.blocked = blocked ? '1' : '0';
+                tr.dataset.inactive = inactive ? '1' : '0';
+                let statusBadge;
+                if (blocked) statusBadge = '<span class="badge-red">Blocked</span>';
+                else if (inactive) statusBadge = '<span class="badge-orange">Inactive</span>';
+                else statusBadge = '<span class="badge-green">Active</span>';
                 tr.innerHTML = `
                     <td class="font-medium u-name">${u.name||'N/A'}</td>
                     <td class="text-gray-400 u-email text-sm">${u.email||''}</td>
                     <td class="font-bold text-yellow-400">${u.balance||0}</td>
-                    <td>${blocked ? '<span class="badge-red">Blocked</span>' : '<span class="badge-green">Active</span>'}</td>
+                    <td>${statusBadge}</td>
                     <td class="flex items-center gap-2 flex-wrap">
                         <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-500/10 text-violet-400 border border-violet-500/20 cursor-pointer hover:bg-violet-500/20 transition" onclick="openEditBalance('${d.id}','${(u.name||'').replace(/'/g,"\\'")}',${u.balance||0})">Edit Coins</button>
                         <button class="px-3 py-1.5 rounded-lg text-xs font-semibold ${blocked?'btn-success':'btn-danger'}" onclick="toggleBlock('${d.id}',${blocked})">${blocked?'Unblock':'Block'}</button>
@@ -983,7 +1047,10 @@
                     const sourceBadge = r.source === 'app'
                         ? '<span class="badge-orange ml-1">📱 App</span>'
                         : '<span class="badge-green ml-1">🤖 Bot</span>';
-                    tbody.innerHTML += `<tr>
+                    const tr = document.createElement('tr');
+                    tr.dataset.uname = (r.userName||'').toLowerCase();
+                    tr.dataset.uemail = (r.userEmail||'').toLowerCase();
+                    tr.innerHTML = `
                         <td><p class="font-medium">${r.userName||'N/A'} ${sourceBadge}</p><p class="text-xs text-gray-500">${r.userEmail||''}</p></td>
                         <td class="font-bold text-yellow-400">${r.amount}</td>
                         <td class="text-sm text-gray-300">${r.method||''}</td>
@@ -991,12 +1058,13 @@
                         <td>${qrHtml}</td>
                         <td class="text-xs text-gray-400">${date}</td>
                         <td class="flex items-center gap-2 flex-wrap">
-                            <button class="btn-success px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="approveW('${d.id}','${r.userId}')">Approve</button>
-                            <button class="btn-danger px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="openRejectModal('${d.id}','${r.userId}',${r.amount})">Reject</button>
+                            <button class="btn-success px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="approveW('${d.id}','${r.userId}','${(r.userEmail||'')}','${(r.userName||'')}')">Approve</button>
+                            <button class="btn-danger px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="openRejectModal('${d.id}','${r.userId}',${r.amount},'${(r.userEmail||'')}','${(r.userName||'')}')">Reject</button>
                             <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-500/10 text-gray-300 border border-gray-500/20 hover:bg-gray-500/20 transition" onclick="moveToBin('${d.id}')">🗑️ Bin</button>
-                        </td>
-                    </tr>`;
+                        </td>`;
+                    tbody.appendChild(tr);
                 });
+                applyWithdrawalFilter();
             }, err => {
                 console.error('Withdrawals listener error:', err);
                 document.getElementById('withdrawals-tbody').innerHTML =
@@ -1174,7 +1242,7 @@
         });
     };
 
-    window.approveW = (reqId, userId) => {
+    window.approveW = (reqId, userId, userEmail, userName) => {
         showConfirm('Approve this withdrawal?', async () => {
             try {
                 // Lock the INR payout at the *current* rate so historical
@@ -1200,13 +1268,19 @@
                     message:`Your withdrawal of 🪙 ${r.amount||0} coins (${fmtInr(inrAmount)}) has been approved. Payment is on the way!`,
                     createdAt:serverTimestamp()
                 });
+                // Send Telegram notification
+                adminApiCall('/api/admin/notify-user', {
+                    userEmail: userEmail||r.userEmail||'', status:'approved', amount:r.amount||0
+                }).catch(()=>{});
                 showAlert('Approved! User notified.');
             } catch(e) { showAlert(e.message); }
         });
     };
 
-    window.openRejectModal = (reqId, userId, amount) => {
+    let currentRejectEmail = '';
+    window.openRejectModal = (reqId, userId, amount, userEmail, userName) => {
         currentRejectId = reqId; currentRejectUserId = userId; currentRejectAmount = amount;
+        currentRejectEmail = userEmail || '';
         document.getElementById('reject-reason').value = '';
         document.getElementById('modal-reject').classList.add('open');
         document.getElementById('reject-confirm-btn').onclick = async () => {
@@ -1222,11 +1296,64 @@
                     message:`Your withdrawal of 🪙 ${currentRejectAmount} coins was rejected.\nReason: ${reason}\nCoins have been refunded to your account.`,
                     createdAt:serverTimestamp()
                 });
+                // Send Telegram notification
+                adminApiCall('/api/admin/notify-user', {
+                    userEmail: currentRejectEmail, status:'rejected', amount:currentRejectAmount, reason
+                }).catch(()=>{});
                 showAlert('Rejected. Coins refunded to user.');
             } catch(e) { showAlert(e.message); }
         };
     };
     window.closeRejectModal = () => document.getElementById('modal-reject').classList.remove('open');
+
+    window.applyWithdrawalFilter = function() {
+        const t = (document.getElementById('withdrawal-search')?.value||'').toLowerCase();
+        document.querySelectorAll('#withdrawals-tbody tr').forEach(r => {
+            const name = r.dataset.uname || '';
+            const email = r.dataset.uemail || '';
+            r.style.display = (!t || name.includes(t) || email.includes(t)) ? '' : 'none';
+        });
+    };
+
+    window.loadBannedUsers = function() {
+        if (!db) return;
+        try {
+            onSnapshot(query(collection(db,'users'), where('isBlocked','==',true)), snap => {
+                const tbody = document.getElementById('banned-tbody');
+                if (!tbody) return;
+                tbody.innerHTML = '';
+                document.getElementById('stat-banned-count').textContent = snap.size;
+                if (snap.empty) { tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500 py-10">No banned users</td></tr>'; return; }
+                snap.forEach(d => {
+                    const u = d.data();
+                    const tr = document.createElement('tr');
+                    tr.dataset.email = (u.email||'').toLowerCase();
+                    tr.innerHTML = `
+                        <td class="font-medium">${u.name||'N/A'}</td>
+                        <td class="text-gray-400 text-sm">${u.email||''}</td>
+                        <td class="font-bold text-yellow-400">${u.balance||0}</td>
+                        <td><button class="btn-success px-3 py-1.5 rounded-lg text-xs font-semibold" onclick="unbanFromPage('${d.id}')">Unban</button></td>`;
+                    tbody.appendChild(tr);
+                });
+                applyBannedFilter();
+            });
+        } catch(e) { console.error(e); }
+    };
+
+    window.applyBannedFilter = function() {
+        const t = (document.getElementById('banned-search')?.value||'').toLowerCase();
+        document.querySelectorAll('#banned-tbody tr').forEach(r => {
+            const email = r.dataset.email || '';
+            r.style.display = (!t || email.includes(t)) ? '' : 'none';
+        });
+    };
+
+    window.unbanFromPage = function(uid) {
+        showConfirm('Unban this user?', async () => {
+            try { await updateDoc(doc(db,'users',uid),{isBlocked:false}); showAlert('User unbanned!'); }
+            catch(e) { showAlert(e.message); }
+        });
+    };
 
     window.sendBroadcast = async () => {
         const title = document.getElementById('bc-title').value.trim();
@@ -1294,6 +1421,9 @@
                 document.getElementById('s-monetag-fn').value       = c.monetagAdFn    || '';
                 document.getElementById('s-monetag-popup-fn').value = c.monetagPopupFn || '';
                 document.getElementById('s-custom-head').value     = c.customHeadCode|| '';
+                // App control toggles
+                document.getElementById('s-app-enabled').checked = c.appEnabled !== false;
+                document.getElementById('s-adblocker-check').checked = c.adBlockerCheck !== false;
             }).catch(()=>{});
         }
     }
@@ -1353,7 +1483,9 @@
             withdrawalOptions: document.getElementById('s-withdrawal-options').value.split(',').map(s=>Number(s.trim())).filter(n=>n>0),
             channelLink: document.getElementById('s-channel-link').value.trim(),
             helpLink:    document.getElementById('s-help-link').value.trim(),
-            policyText:  document.getElementById('s-policy-text').value.trim()
+            policyText:  document.getElementById('s-policy-text').value.trim(),
+            appEnabled: document.getElementById('s-app-enabled').checked,
+            adBlockerCheck: document.getElementById('s-adblocker-check').checked,
         };
         try { await setDoc(doc(db,'config','main'),data,{merge:true}); showAlert('App settings saved!'); }
         catch(e) { showAlert('Error: '+e.message); }

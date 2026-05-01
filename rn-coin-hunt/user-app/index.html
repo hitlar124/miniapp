@@ -468,6 +468,21 @@
             try { await signInWithEmailAndPassword(auth, email, pw); } catch (e) { showAlert(e.message); }
         });
 
+        function getDeviceFingerprint() {
+            const raw = [
+                navigator.userAgent || '',
+                navigator.language || '',
+                screen.width + 'x' + screen.height,
+                screen.colorDepth || '',
+                new Date().getTimezoneOffset(),
+                navigator.hardwareConcurrency || '',
+                navigator.platform || ''
+            ].join('|');
+            let hash = 0;
+            for (let i = 0; i < raw.length; i++) { hash = (Math.imul(31, hash) + raw.charCodeAt(i)) | 0; }
+            return 'fp_' + Math.abs(hash).toString(36);
+        }
+
         document.getElementById('signup-btn').addEventListener('click', async () => {
             const name = document.getElementById('signup-name').value.trim();
             const email = document.getElementById('signup-email').value.trim();
@@ -475,6 +490,12 @@
             if (!name || !email || !pw) return showAlert('Please fill all fields.');
             if (pw.length < 6) return showAlert('Password must be at least 6 characters.');
             try {
+                // Device fingerprint check — one account per device
+                const fp = getDeviceFingerprint();
+                const existingSnap = await getDocs(query(collection(db, 'users'), where('deviceFingerprint', '==', fp)));
+                if (!existingSnap.empty) {
+                    return showAlert('An account already exists on this device. Please log in instead.');
+                }
                 const cred = await createUserWithEmailAndPassword(auth, email, pw);
                 const refCode = Math.random().toString(36).substring(2, 8).toUpperCase();
                 await setDoc(doc(db, 'users', cred.user.uid), {
@@ -484,7 +505,7 @@
                     dailyMathCount: 0, lastMathTime: 0, lastMathDate: '',
                     lastCheckInDate: null, isBlocked: false,
                     lastNotificationCheck: serverTimestamp(), createdAt: serverTimestamp(),
-                    telegramId: null
+                    telegramId: null, deviceFingerprint: fp
                 });
             } catch (e) { showAlert(e.message); }
         });
@@ -502,6 +523,12 @@
                 currentUser = user;
                 try {
                     await loadConfig();
+                    if (appConfig.appEnabled === false) {
+                        showView('auth-section');
+                        loader.style.display = 'none';
+                        showAlert('🔧 App is under maintenance. Please try again later.');
+                        return;
+                    }
                     await loadUserData();
                     if (userData?.isBlocked) { showAlert('Your account has been blocked.'); await signOut(auth); return; }
                     // Save Telegram ID so bot can identify this user
@@ -562,6 +589,8 @@
                     monetagAdFn:    d.monetagAdFn    || '',
                     monetagPopupFn: d.monetagPopupFn || '',
                     customHeadCode: d.customHeadCode || '',
+                    appEnabled: d.appEnabled !== false,
+                    adBlockerCheck: d.adBlockerCheck !== false,
                 };
                 // Inject Monetag & custom scripts into <head> (only once)
                 injectAdScripts(appConfig);
@@ -839,10 +868,11 @@
             const adFnName = adFn.replace(/\(.*$/, '').trim();
             if (adFnName && typeof window[adFnName] !== 'function') {
                 // SDK never loaded → almost certainly an ad blocker / DNS block.
-                showAdBlockerWarning();
-                throw new Error('Ad blocker detected. Please disable it and try again.');
+                if (appConfig?.adBlockerCheck !== false) showAdBlockerWarning();
+                throw new Error('Network slow, please try again later.');
             }
             return new Promise((resolve, reject) => {
+                const timer = setTimeout(() => reject(new Error('Network slow, please try again later.')), 30000);
                 try {
                     new Function('resolve','reject', `
                         try {
@@ -850,8 +880,8 @@
                             if (r && typeof r.then === 'function') { r.then(resolve).catch(reject); }
                             else { resolve(r); }
                         } catch(e) { reject(e); }
-                    `)(resolve, reject);
-                } catch(e) { reject(e); }
+                    `)((...a) => { clearTimeout(timer); resolve(...a); }, (e) => { clearTimeout(timer); reject(e); });
+                } catch(e) { clearTimeout(timer); reject(e); }
             });
         }
 
@@ -897,6 +927,8 @@
         //     on window. If it never does, the SDK was blocked (most often by
         //     a DNS-level blocker like dns.adguard.com).
         async function detectAdBlocker() {
+            // Skip if ad blocker detection is disabled by admin.
+            if (appConfig?.adBlockerCheck === false) return false;
             // Skip if no ads are configured at all (dev with no admin config).
             const adFn = appConfig?.monetagAdFn?.trim();
             const sdk = appConfig?.monetagScript?.trim();

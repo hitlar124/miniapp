@@ -118,6 +118,29 @@ app.post('/api/admin/ban-user', async (req, res) => {
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// ── Send Telegram notification to a specific user (called when admin approves/rejects withdrawal from web panel) ──
+app.post('/api/admin/notify-user', async (req, res) => {
+    const { u, p, userId, message } = req.body || {};
+    if (!verifyAdminCreds(u, p)) return res.status(403).json({ ok: false, error: 'Unauthorized' });
+    if (!userId || !message) return res.status(400).json({ ok: false, error: 'userId and message required' });
+    try {
+        let botDb = null;
+        try { botDb = require('firebase-admin/firestore').getFirestore(); } catch {}
+        if (!botDb) return res.status(503).json({ ok: false, error: 'Firebase not configured on server' });
+        const snap = await botDb.collection('users').doc(userId).get();
+        if (!snap.exists) return res.status(404).json({ ok: false, error: 'User not found' });
+        const ud = snap.data();
+        const telegramId = ud.telegramId;
+        if (!telegramId) return res.json({ ok: true, sent: false, reason: 'User has no Telegram ID linked' });
+        const botModule = require('./bot/bot.js');
+        if (!botModule || !botModule.enabled) return res.json({ ok: true, sent: false, reason: 'Bot not enabled' });
+        await botModule.sendMessage(telegramId, message);
+        res.json({ ok: true, sent: true });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    }
+});
+
 // ── Broadcast notification via firebase-admin (bypasses Firestore auth rules) ──
 app.post('/api/admin/broadcast', async (req, res) => {
     const { u, p, title, message } = req.body || {};
