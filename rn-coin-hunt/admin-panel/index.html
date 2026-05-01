@@ -195,6 +195,10 @@
                 <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/></svg>
                 Delete User
             </div>
+            <div class="nav-link" onclick="navTo('pg-today-workers')">
+                <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                Today's Workers
+            </div>
             <div class="nav-link" onclick="navTo('pg-settings')">
                 <svg class="w-4 h-4 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 Settings
@@ -228,7 +232,7 @@
                     <div class="w-11 h-11 bg-green-500/15 text-green-400 rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-5">
+            <div class="grid grid-cols-3 gap-5 mt-5">
                 <div class="glass p-5 flex justify-between items-center">
                     <div>
                         <p class="text-gray-400 text-sm">Today's Withdrawals</p>
@@ -244,6 +248,14 @@
                         <p id="stat-total-count" class="text-xs text-gray-500 mt-1">— approvals total</p>
                     </div>
                     <div class="w-11 h-11 bg-emerald-500/15 text-emerald-400 rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3v18h18M7 14l4-4 4 4 5-5"/></svg></div>
+                </div>
+                <div class="glass p-5 flex justify-between items-center cursor-pointer hover:opacity-90 transition" onclick="navTo('pg-today-workers')">
+                    <div>
+                        <p class="text-gray-400 text-sm">Today's Workers (IST)</p>
+                        <p id="stat-today-workers" class="text-4xl font-bold mt-1 text-purple-400">—</p>
+                        <p id="stat-today-workers-date" class="text-xs text-gray-500 mt-1">users worked today</p>
+                    </div>
+                    <div class="w-11 h-11 bg-purple-500/15 text-purple-400 rounded-full flex items-center justify-center"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
                 </div>
             </div>
         </div>
@@ -413,6 +425,41 @@
                 </div>
 
                 <div id="del-result-msg" class="hidden mt-4 text-sm rounded-xl p-3 border"></div>
+            </div>
+        </div>
+
+        <!-- Today's Workers Page -->
+        <div id="pg-today-workers" class="page">
+            <div class="flex items-center justify-between mb-5 gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold">Today's Workers</h1>
+                    <p id="tw-date-label" class="text-gray-500 text-sm mt-1">Indian Standard Time (IST)</p>
+                </div>
+                <button onclick="loadTodayWorkers()" class="btn-primary px-4 py-2 rounded-xl text-sm font-bold">↻ Refresh</button>
+            </div>
+
+            <div class="glass p-6 mb-6 flex items-center justify-between">
+                <div>
+                    <p class="text-gray-400 text-sm mb-1">Users who completed at least one task today (IST)</p>
+                    <p id="tw-count" class="text-6xl font-bold text-purple-400">—</p>
+                    <p class="text-gray-500 text-xs mt-2">Resets every day at 12:00 AM IST</p>
+                </div>
+                <div class="w-16 h-16 bg-purple-500/15 text-purple-400 rounded-full flex items-center justify-center">
+                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+            </div>
+
+            <div class="glass p-5">
+                <h3 class="font-bold text-sm mb-3 text-gray-300">ℹ️ How it's counted</h3>
+                <div class="space-y-2 text-xs text-gray-400 leading-relaxed">
+                    <p>A user is counted as a "worker" if they completed <b class="text-white">at least one</b> of the following tasks today (IST):</p>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li>📅 Daily Check-in</li>
+                        <li>▶️ Watch Video Ad</li>
+                        <li>🧮 Math Quiz</li>
+                    </ul>
+                    <p class="mt-2">The count resets automatically every day at <b class="text-purple-300">12:00 AM IST</b>. A Telegram report is sent to admins at <b class="text-purple-300">11:59 PM IST</b> each day.</p>
+                </div>
             </div>
         </div>
 
@@ -932,13 +979,14 @@
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageId)?.classList.add('active');
         document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
-        const idx = ['pg-dashboard','pg-users','pg-withdrawals','pg-bin','pg-coupons','pg-broadcast','pg-banned','pg-delete-user','pg-settings'];
+        const idx = ['pg-dashboard','pg-users','pg-withdrawals','pg-bin','pg-coupons','pg-broadcast','pg-banned','pg-delete-user','pg-today-workers','pg-settings'];
         const navEls = document.querySelectorAll('.nav-link');
         const i = idx.indexOf(pageId);
         if (i >= 0 && navEls[i]) navEls[i].classList.add('active');
         if (pageId === 'pg-settings') prefillSettings();
         if (pageId === 'pg-banned') loadBannedUsers();
         if (pageId === 'pg-delete-user') resetDeleteUserPage();
+        if (pageId === 'pg-today-workers') loadTodayWorkers();
     };
 
     window.settingsTab = function(tabId) {
@@ -1008,7 +1056,29 @@
         loadWithdrawals();
         loadBinRequests();
         loadCoupons();
+        loadTodayWorkers();
     }
+
+    window.loadTodayWorkers = async function() {
+        try {
+            const res = await fetch('/api/admin/today-workers');
+            const json = await res.json();
+            if (json.ok) {
+                const count = json.count;
+                const date  = json.date;
+                // Update dashboard stat card
+                const statEl = document.getElementById('stat-today-workers');
+                const dateEl = document.getElementById('stat-today-workers-date');
+                if (statEl) statEl.textContent = count;
+                if (dateEl) dateEl.textContent = `${count} user(s) worked on ${date}`;
+                // Update dedicated page
+                const twCount = document.getElementById('tw-count');
+                const twDate  = document.getElementById('tw-date-label');
+                if (twCount) twCount.textContent = count;
+                if (twDate)  twDate.textContent  = `Date: ${date} (Indian Standard Time)`;
+            }
+        } catch (e) { console.error('loadTodayWorkers error:', e); }
+    };
 
     let userFilterMode = 'all';
     window.setUserFilter = function(mode) {

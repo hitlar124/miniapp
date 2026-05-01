@@ -219,7 +219,9 @@ app.post('/api/check-device', async (req, res) => {
         try { db = require('firebase-admin/firestore').getFirestore(); } catch {}
         if (!db) return res.status(503).json({ ok: false, exists: false });
         const snap = await db.collection('users').where('deviceFingerprint', '==', fingerprint).limit(1).get();
-        res.json({ ok: true, exists: !snap.empty });
+        const exists = !snap.empty;
+        const email = exists ? (snap.docs[0].data().email || '') : '';
+        res.json({ ok: true, exists, email });
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
@@ -368,15 +370,107 @@ app.get('/', (req, res) => {
 </html>`);
 });
 
+// ── IST date helper (Indian Standard Time = UTC+5:30) ──
+function getISTDateString() {
+    const now = new Date();
+    const istMs = now.getTime() + (5 * 60 + 30) * 60 * 1000;
+    return new Date(istMs).toISOString().split('T')[0];
+}
+
+// ── Today's Workers count (IST) ──
+// A user "worked today" if any of their daily task date fields equals today's IST date.
+app.get('/api/admin/today-workers', async (req, res) => {
+    try {
+        let db = null;
+        try { db = require('firebase-admin/firestore').getFirestore(); } catch {}
+        if (!db) return res.status(503).json({ ok: false, error: 'Firebase not configured' });
+
+        const today = getISTDateString();
+        const usersRef = db.collection('users');
+
+        // Three separate queries (Firestore doesn't support OR across different fields)
+        const [adSnap, mathSnap, checkinSnap] = await Promise.all([
+            usersRef.where('lastAdWatchDate', '==', today).get(),
+            usersRef.where('lastMathDate', '==', today).get(),
+            usersRef.where('lastCheckInDate', '==', today).get(),
+        ]);
+
+        // Union by UID (deduplicate)
+        const workerIds = new Set();
+        adSnap.forEach(d => workerIds.add(d.id));
+        mathSnap.forEach(d => workerIds.add(d.id));
+        checkinSnap.forEach(d => workerIds.add(d.id));
+
+        res.json({ ok: true, count: workerIds.size, date: today });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── Nightly 11:59 PM IST report to Telegram admins ──
+function scheduleNightlyReport(botModule) {
+    // 23:59 IST = 18:29 UTC (IST is UTC+5:30)
+    function msUntilNext2359IST() {
+        const now = new Date();
+        const target = new Date(now);
+        target.setUTCHours(18, 29, 0, 0); // 18:29 UTC = 23:59 IST
+        if (now.getTime() >= target.getTime()) {
+            target.setUTCDate(target.getUTCDate() + 1);
+        }
+        return target.getTime() - now.getTime();
+    }
+
+    async function sendNightlyReport() {
+        try {
+            let db = null;
+            try { db = require('firebase-admin/firestore').getFirestore(); } catch {}
+            if (!db || !botModule || !botModule.enabled) return;
+
+            const today = getISTDateString();
+            const usersRef = db.collection('users');
+            const [adSnap, mathSnap, checkinSnap] = await Promise.all([
+                usersRef.where('lastAdWatchDate', '==', today).get(),
+                usersRef.where('lastMathDate', '==', today).get(),
+                usersRef.where('lastCheckInDate', '==', today).get(),
+            ]);
+            const workerIds = new Set();
+            adSnap.forEach(d => workerIds.add(d.id));
+            mathSnap.forEach(d => workerIds.add(d.id));
+            checkinSnap.forEach(d => workerIds.add(d.id));
+
+            const ADMIN_IDS = (process.env.ADMIN_IDS || process.env.ADMIN_TELEGRAM_IDS || '')
+                .split(',').map(s => s.trim()).filter(Boolean);
+
+            const msg = `📊 *Daily Worker Report*\n📅 Date: ${today}\n👷 Workers Today: *${workerIds.size}*\n_(Users who did at least one task)_`;
+            for (const adminId of ADMIN_IDS) {
+                await botModule.sendMessage(adminId, msg).catch(() => {});
+            }
+            console.log(`[Nightly Report] Sent for ${today}: ${workerIds.size} workers`);
+        } catch (e) {
+            console.error('[Nightly Report] Error:', e.message);
+        }
+        // Schedule next day's report (re-compute delay so it's always exactly on time)
+        setTimeout(sendNightlyReport, msUntilNext2359IST());
+    }
+
+    const delay = msUntilNext2359IST();
+    console.log(`[Nightly Report] Scheduled in ${Math.round(delay / 60000)} min (next 23:59 IST)`);
+    setTimeout(sendNightlyReport, delay);
+}
+
 app.listen(PORT, () => {
     console.log(`RN Coin Hunt server running on port ${PORT}`);
 
     // Start the Telegram bot in the same process.
     // It uses long-polling, so it doesn't need its own port.
     // Main server traffic keeps the whole process awake on Render free tier.
+    let botModule = null;
     try {
-        require('./bot/bot.js');
+        botModule = require('./bot/bot.js');
     } catch (e) {
         console.error('Failed to start bot:', e.message);
+    }
+
+    // Schedule nightly 11:59 PM IST worker report to admins
+    if (botModule) {
+        scheduleNightlyReport(botModule);
     }
 });

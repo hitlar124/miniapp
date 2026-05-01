@@ -573,6 +573,14 @@
             return 'fp_' + Math.abs(hash).toString(36);
         }
 
+        // ── IST date string (Indian Standard Time = UTC+5:30) ──
+        // Used for all daily task resets so they happen at 12:00 AM IST
+        function getISTDateString() {
+            const now = new Date();
+            const istMs = now.getTime() + (5 * 60 + 30) * 60 * 1000;
+            return new Date(istMs).toISOString().split('T')[0];
+        }
+
         document.getElementById('signup-btn').addEventListener('click', async () => {
             const name = document.getElementById('signup-name').value.trim();
             const email = document.getElementById('signup-email').value.trim();
@@ -590,7 +598,14 @@
                     });
                     const chk = await chkResp.json();
                     if (chk.exists) {
-                        return showAlert('Not permitted to create multiple accounts from the same device. Please log in instead.');
+                        // Pre-fill login form with the email of the existing account
+                        if (chk.email) {
+                            document.getElementById('login-email').value = chk.email;
+                        }
+                        // Switch to login view
+                        document.getElementById('signup-view').classList.add('hidden');
+                        document.getElementById('login-view').classList.remove('hidden');
+                        return showAlert('এই ডিভাইসে আগে থেকেই একটি অ্যাকাউন্ট আছে। নতুন অ্যাকাউন্ট খোলা যাবে না।\n\nAn account already exists on this device. Please log in with your original account' + (chk.email ? ` (${chk.email})` : '') + '.');
                     }
                 } catch (_) { /* server unavailable — allow registration, fingerprint saved anyway */ }
 
@@ -739,7 +754,7 @@
         async function loadUserData() {
             const ref = doc(db, 'users', currentUser.uid);
             const snap = await getDoc(ref);
-            const today = new Date().toISOString().split('T')[0];
+            const today = getISTDateString();
             if (snap.exists()) {
                 userData = snap.data();
                 const updates = {};
@@ -893,7 +908,7 @@
 
         function updateTasksUI() {
             if (!userData || !appConfig) return;
-            const today = new Date().toISOString().split('T')[0];
+            const today = getISTDateString();
             const now = Date.now();
 
             const btnCheckin = document.getElementById('btn-checkin');
@@ -921,7 +936,7 @@
         }
 
         window.handleCheckIn = async function() {
-            const today = new Date().toISOString().split('T')[0];
+            const today = getISTDateString();
             if (userData.lastCheckInDate === today) return showAlert('Already claimed today!');
             // Show an ad first, then credit the reward.
             try {
@@ -1201,7 +1216,7 @@
 
         async function giveAdReward(type) {
             const now = Date.now();
-            const today = new Date().toISOString().split('T')[0];
+            const today = getISTDateString();
             const isAd = type === 'ad';
             const limit = isAd ? (appConfig.dailyAdLimit || 10) : (appConfig.dailyMathLimit || 10);
             const count = isAd ? (userData.dailyAdCount || 0) : (userData.dailyMathCount || 0);
