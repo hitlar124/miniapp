@@ -320,6 +320,58 @@
                     </button>
                 </div>
 
+                <!-- Referral Rules -->
+                <div class="glass-card p-5">
+                    <h3 class="font-bold text-sm mb-4 flex items-center gap-2">
+                        <span>📋</span> How Referrals Work
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex items-start gap-3 p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/15">
+                            <span class="text-xl shrink-0">🎁</span>
+                            <div>
+                                <p class="text-sm font-bold text-yellow-300">Sign-up Bonus</p>
+                                <p class="text-xs text-gray-400 leading-relaxed mt-0.5">
+                                    Both you and your friend each get
+                                    <span id="rule-signup-bonus" class="text-yellow-400 font-bold">...</span> coins
+                                    when they join using your code.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 rounded-xl bg-green-500/5 border border-green-500/15">
+                            <span class="text-xl shrink-0">💸</span>
+                            <div>
+                                <p class="text-sm font-bold text-green-300">Withdrawal Commission</p>
+                                <p class="text-xs text-gray-400 leading-relaxed mt-0.5">
+                                    Every time your friend's withdrawal is
+                                    <span class="text-green-400 font-bold">approved</span>, you earn
+                                    <span id="rule-commission-pct" class="text-green-400 font-bold">...</span>%
+                                    of their withdrawal amount as bonus coins — every single time.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 rounded-xl bg-blue-500/5 border border-blue-500/15">
+                            <span class="text-xl shrink-0">📊</span>
+                            <div>
+                                <p class="text-sm font-bold text-blue-300">Example</p>
+                                <p class="text-xs text-gray-400 leading-relaxed mt-0.5" id="rule-example-text">
+                                    If your friend withdraws <span id="rule-ex-coins" class="text-blue-300 font-bold">...</span> coins
+                                    and it gets approved, you instantly get
+                                    <span id="rule-ex-commission" class="text-blue-300 font-bold">...</span> coins.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3 p-3 rounded-xl bg-red-500/5 border border-red-500/15">
+                            <span class="text-xl shrink-0">❌</span>
+                            <div>
+                                <p class="text-sm font-bold text-red-300">Rejected = No Commission</p>
+                                <p class="text-xs text-gray-400 leading-relaxed mt-0.5">
+                                    If your friend's withdrawal is rejected, no commission is added to your balance.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Referred users list -->
                 <div class="glass-card p-5">
                     <h3 class="font-bold text-sm mb-3">Friends You've Referred</h3>
@@ -725,6 +777,15 @@
             document.getElementById('math-modal-reward').textContent = appConfig.mathReward;
             document.getElementById('ad-reward-text').textContent = appConfig.adReward;
             document.getElementById('refer-bonus-text').textContent = appConfig.referralBonus;
+            // Referral rules section — auto-updates from appConfig
+            document.getElementById('rule-signup-bonus').textContent = appConfig.referralBonus;
+            const commPct = appConfig.referralCommission || 0;
+            document.getElementById('rule-commission-pct').textContent = commPct;
+            // Example: use minWithdrawal as sample withdrawal amount
+            const exCoins = appConfig.minWithdrawal || 1000;
+            const exCommission = Math.floor(exCoins * commPct / 100);
+            document.getElementById('rule-ex-coins').textContent = exCoins;
+            document.getElementById('rule-ex-commission').textContent = exCommission;
 
             // Referral code lock state
             const appliedBox = document.getElementById('referral-applied-box');
