@@ -1,8 +1,85 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.use(express.json());
+
+// ── Admin credentials file (set via setup, verified for API calls) ──
+const ADMIN_CREDS_FILE = path.join(__dirname, '.admin_creds.json');
+function loadAdminCreds() {
+    try { return JSON.parse(fs.readFileSync(ADMIN_CREDS_FILE, 'utf8')); } catch { return null; }
+}
+function saveAdminCreds(u, p) {
+    fs.writeFileSync(ADMIN_CREDS_FILE, JSON.stringify({ u, p }), 'utf8');
+}
+function verifyAdminCreds(u, p) {
+    const c = loadAdminCreds();
+    return c && c.u === u && c.p === p;
+}
+
+// ── Save admin credentials (called from setup step 1) ──
+app.post('/api/admin/save-creds', (req, res) => {
+    const { u, p } = req.body || {};
+    if (!u || !p) return res.status(400).json({ ok: false, error: 'Missing credentials' });
+    saveAdminCreds(u, p);
+    res.json({ ok: true });
+});
+
+// ── Adjust a user's coin balance (firebase-admin, bypasses Firestore auth) ──
+app.post('/api/admin/adjust-coins', async (req, res) => {
+    const { u, p, userId, delta, reason } = req.body || {};
+    if (!verifyAdminCreds(u, p)) return res.status(403).json({ ok: false, error: 'Unauthorized' });
+    if (!userId || delta === undefined) return res.status(400).json({ ok: false, error: 'userId and delta required' });
+    try {
+        let botDb = null;
+        try { botDb = require('firebase-admin/firestore').getFirestore(); } catch {}
+        if (!botDb) return res.status(503).json({ ok: false, error: 'Firebase not configured on server' });
+        const { FieldValue } = require('firebase-admin/firestore');
+        const ref = botDb.collection('users').doc(userId);
+        const snap = await ref.get();
+        if (!snap.exists) return res.status(404).json({ ok: false, error: 'User not found' });
+        await ref.update({ balance: FieldValue.increment(Number(delta)) });
+        const newBalance = (snap.data().balance || 0) + Number(delta);
+        res.json({ ok: true, newBalance, name: snap.data().name || userId });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── Ban / unban a user by ID ──
+app.post('/api/admin/ban-user', async (req, res) => {
+    const { u, p, userId, banned } = req.body || {};
+    if (!verifyAdminCreds(u, p)) return res.status(403).json({ ok: false, error: 'Unauthorized' });
+    if (!userId) return res.status(400).json({ ok: false, error: 'userId required' });
+    try {
+        let botDb = null;
+        try { botDb = require('firebase-admin/firestore').getFirestore(); } catch {}
+        if (!botDb) return res.status(503).json({ ok: false, error: 'Firebase not configured on server' });
+        const ref = botDb.collection('users').doc(userId);
+        const snap = await ref.get();
+        if (!snap.exists) return res.status(404).json({ ok: false, error: 'User not found' });
+        await ref.update({ isBlocked: !!banned });
+        res.json({ ok: true, name: snap.data().name || userId });
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── Broadcast notification via firebase-admin (bypasses Firestore auth rules) ──
+app.post('/api/admin/broadcast', async (req, res) => {
+    const { u, p, title, message } = req.body || {};
+    if (!verifyAdminCreds(u, p)) return res.status(403).json({ ok: false, error: 'Unauthorized' });
+    if (!title || !message) return res.status(400).json({ ok: false, error: 'Title and message required' });
+    try {
+        // Use the bot's firebase-admin db (same process)
+        let botDb = null;
+        try { botDb = require('firebase-admin/firestore').getFirestore(); } catch {}
+        if (!botDb) return res.status(503).json({ ok: false, error: 'Firebase not configured on server' });
+        const { FieldValue } = require('firebase-admin/firestore');
+        await botDb.collection('notifications').add({ title, message, createdAt: FieldValue.serverTimestamp() });
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    }
+});
 
 // Config endpoint — reads from Render environment variables
 // User-app loads this to get Firebase config without hardcoding

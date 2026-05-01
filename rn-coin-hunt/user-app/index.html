@@ -271,6 +271,11 @@
                     </div>
 
                     <div>
+                        <label class="block text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wide">Account Holder Name</label>
+                        <input id="wf-account-name" type="text" placeholder="Full name on your UPI account" class="input-glass" autocapitalize="words" autocorrect="off">
+                    </div>
+
+                    <div>
                         <label class="block text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wide">UPI ID</label>
                         <input id="wf-upi" type="text" placeholder="yourname@bank" class="input-glass" autocapitalize="off" autocorrect="off">
                         <p class="text-[11px] text-gray-500 mt-1.5">Enter your UPI ID (e.g. <span class="text-gray-400">name@okhdfcbank</span>). No QR upload needed here. To withdraw via QR, use the Telegram bot.</p>
@@ -1059,7 +1064,8 @@
             // We DO let the user press it even if the amount > balance, so the
             // error message shows on submit (per spec).
             const upi = document.getElementById('wf-upi').value.trim();
-            const ok = !blocked && wfState.amount && wfState.method && upi.length >= 3;
+            const acctName = document.getElementById('wf-account-name').value.trim();
+            const ok = !blocked && wfState.amount && wfState.method && upi.length >= 3 && acctName.length >= 2;
             const submit = document.getElementById('wf-submit');
             submit.classList.toggle('btn-disabled', !ok);
         }
@@ -1067,10 +1073,12 @@
         async function submitAppWithdrawal() {
             const cfg = appConfig;
             const bal = userData?.balance || 0;
+            const acctName = document.getElementById('wf-account-name').value.trim();
             const upi = document.getElementById('wf-upi').value.trim();
             if (hasPendingWithdrawal()) return showAlert('You already have a pending withdrawal request. Please wait until it is approved or rejected before submitting another one.');
             if (!wfState.amount) return showAlert('Please choose an amount.');
             if (!wfState.method) return showAlert('Please choose a payment method.');
+            if (!acctName || acctName.length < 2) return showAlert('Please enter your Account Holder Name.');
             if (!upi || upi.length < 3) return showAlert('Please enter a valid UPI ID.');
             if (bal < wfState.amount) return showAlert(`Insufficient balance. You need ${wfState.amount} Coins but only have ${bal} Coins.`);
             if (bal < (cfg.minWithdrawal || 0)) return showAlert(`Minimum withdrawal is ${cfg.minWithdrawal} coins.`);
@@ -1102,7 +1110,7 @@
                     telegramId: userData.telegramId || null,
                     amount: wfState.amount,
                     method: wfState.method,
-                    accountName: upi,
+                    accountName: acctName,
                     upiId: upi,
                     qrCodeUrl: null,
                     source: 'app',
@@ -1112,6 +1120,7 @@
                 const submittedAmount = wfState.amount;
                 userData.balance = bal - submittedAmount;
                 wfState = { amount: null, method: null };
+                document.getElementById('wf-account-name').value = '';
                 document.getElementById('wf-upi').value = '';
                 updateUI();
                 showAlert(`Request submitted! Your ${submittedAmount} coins withdrawal is now pending. You can track it in History.`);
@@ -1194,21 +1203,30 @@
 
         async function loadNotifications() {
             try {
-                const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
-                const snap = await getDocs(q);
+                // No orderBy on either query — avoids needing Firestore composite
+                // indexes (where + orderBy). We sort client-side instead.
+                const [snap, userSnap] = await Promise.all([
+                    getDocs(collection(db, 'notifications')),
+                    getDocs(query(collection(db, 'user_notifications'), where('userId', '==', currentUser.uid))),
+                ]);
                 const list = document.getElementById('notifications-list');
-                const userNotifQ = query(collection(db, 'user_notifications'), where('userId', '==', currentUser.uid), orderBy('createdAt', 'desc'));
-                const userSnap = await getDocs(userNotifQ);
+
+                // Combine: personal notifications first, then broadcasts, newest first.
+                const userItems = userSnap.docs
+                    .map(d => ({ ...d.data(), _personal: true }))
+                    .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+                const broadItems = snap.docs
+                    .map(d => d.data())
+                    .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
 
                 let html = '';
-                userSnap.docs.forEach(d => {
-                    const n = d.data();
+                userItems.forEach(n => {
                     const color = n.type === 'approved' ? 'text-green-400' : n.type === 'rejected' ? 'text-red-400' : 'text-yellow-400';
-                    html += `<div class="glass-card p-4"><p class="font-bold ${color}">${n.title}</p><p class="text-sm text-gray-300 mt-1">${n.message}</p></div>`;
+                    const msg = (n.message || '').replace(/\n/g, '<br>');
+                    html += `<div class="glass-card p-4"><p class="font-bold ${color}">${n.title}</p><p class="text-sm text-gray-300 mt-1">${msg}</p></div>`;
                 });
-                snap.docs.forEach(d => {
-                    const n = d.data();
-                    html += `<div class="glass-card p-4"><p class="font-bold text-white">${n.title}</p><p class="text-sm text-gray-300 mt-1">${n.message}</p></div>`;
+                broadItems.forEach(n => {
+                    html += `<div class="glass-card p-4"><p class="font-bold text-white">${n.title}</p><p class="text-sm text-gray-300 mt-1">${n.message || ''}</p></div>`;
                 });
                 list.innerHTML = html || '<p class="text-center text-gray-500 text-sm py-4">No notifications</p>';
                 await updateDoc(doc(db, 'users', currentUser.uid), { lastNotificationCheck: serverTimestamp() });
@@ -1247,6 +1265,7 @@
 
         // Wallet form events
         document.getElementById('wf-upi').addEventListener('input', renderWithdrawForm);
+        document.getElementById('wf-account-name').addEventListener('input', renderWithdrawForm);
         document.getElementById('wf-submit').addEventListener('click', () => {
             if (document.getElementById('wf-submit').classList.contains('btn-disabled')) return;
             submitAppWithdrawal();

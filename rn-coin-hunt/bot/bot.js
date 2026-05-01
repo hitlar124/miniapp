@@ -75,20 +75,20 @@ function userMainMenu(appUrl) {
     return {
         inline_keyboard: [
             [
-                { text: '📋 Tasks',         web_app: { url: appUrl } },
-                { text: '💰 Balance',       callback_data: 'u|balance' },
+                { text: '📋 Tasks',        web_app: { url: appUrl } },
+                { text: '💰 Balance',      callback_data: 'u|balance' },
             ],
             [
-                { text: '📤 Withdraw',      callback_data: 'u|withdraw' },
-                { text: '🎁 Claim Coupon',  callback_data: 'u|claimcoupon' },
+                { text: '📤 Withdraw',     callback_data: 'u|withdraw' },
+                { text: '📜 History',      callback_data: 'u|history' },
             ],
             [
-                { text: '📢 Join Channel',  callback_data: 'u|channel' },
-                { text: '🆘 Help',          callback_data: 'u|help' },
+                { text: '📢 Channel',      callback_data: 'u|channel' },
+                { text: '🆘 Help',         callback_data: 'u|help' },
             ],
             [
-                { text: '🪪 My ID',         callback_data: 'u|myid' },
-                { text: '📜 Policy',        callback_data: 'u|policy' },
+                { text: '🪪 My ID',        callback_data: 'u|myid' },
+                { text: '📜 Policy',       callback_data: 'u|policy' },
             ],
         ]
     };
@@ -229,6 +229,8 @@ bot.on('callback_query', async (query) => {
             if (action === 'msguser')    return startMessageUser(chatId, userId, msgId);
             if (action === 'coupon')     return startCreateCoupon(chatId, userId, msgId);
             if (action === 'stats')      return showStats(chatId, userId, msgId);
+            if (action === 'banuser')    return startBanUser(chatId, userId, msgId, true);
+            if (action === 'unbanuser')  return startBanUser(chatId, userId, msgId, false);
             if (action === 'close') {
                 bot.deleteMessage(chatId, msgId).catch(() => {});
                 return;
@@ -540,18 +542,20 @@ async function uStartWithdraw(chatId, userId) {
     if (opts.length === 0) return bot.sendMessage(chatId, '⚠️ No withdrawal options set. Admin must add them.', { reply_markup: backToMenuKb() });
     if (methods.length === 0) return bot.sendMessage(chatId, '⚠️ No payment methods set. Admin must add them.', { reply_markup: backToMenuKb() });
 
+    const rCoins = cfg.coinValueCoins || 1000;
+    const rInr   = cfg.coinValueInr   || 10;
     const rows = [];
     let row = [];
     opts.forEach((o, i) => {
-        row.push({ text: `🪙 ${o}`, callback_data: `wd|amount|${o}` });
-        if (row.length === 3 || i === opts.length - 1) { rows.push(row); row = []; }
+        row.push({ text: fmtCoinInr(o, rCoins, rInr), callback_data: `wd|amount|${o}` });
+        if (row.length === 2 || i === opts.length - 1) { rows.push(row); row = []; }
     });
     rows.push([{ text: '❌ Cancel', callback_data: 'wd|cancel' }]);
 
-    wState[userId] = { step: 'choose_amount', data: { methods, userId: user.id, userName: user.name, userEmail: user.email, balance: bal } };
+    wState[userId] = { step: 'choose_amount', data: { methods, userId: user.id, userName: user.name, userEmail: user.email, balance: bal, rateCoins: rCoins, rateInr: rInr } };
 
     bot.sendMessage(chatId,
-        `📤 *Choose Withdrawal Amount*\n\nYour Balance: *${bal} Coins*`,
+        `📤 *Choose Withdrawal Amount*\n\nYour Balance: *${fmtK(bal)} Coins*`,
         { parse_mode: 'Markdown', reply_markup: { inline_keyboard: rows } }
     );
 }
@@ -567,12 +571,15 @@ async function wConfirmAmount(chatId, userId, amount) {
     }
     state.data.amount = amount;
     const methods = state.data.methods;
+    const rCoins = state.data.rateCoins || 1000;
+    const rInr   = state.data.rateInr   || 10;
+    const inrDisplay = fmtCoinInr(amount, rCoins, rInr);
 
     if (methods.length === 1) {
         state.data.method = methods[0];
         state.step = 'ask_qr';
         bot.sendMessage(chatId,
-            `✅ Amount: *${amount}* | Method: *${methods[0]}*\n\n📸 Now send your *QR Code* image:`,
+            `✅ Amount: *${inrDisplay}* | Method: *${methods[0]}*\n\n📸 Now send your *QR Code* image:`,
             { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❌ Cancel', callback_data: 'wd|cancel' }]] } }
         );
     } else {
@@ -580,7 +587,7 @@ async function wConfirmAmount(chatId, userId, amount) {
         const methodRows = methods.map(m => [{ text: `💳 ${m}`, callback_data: `wd|method|${m}` }]);
         methodRows.push([{ text: '❌ Cancel', callback_data: 'wd|cancel' }]);
         bot.sendMessage(chatId,
-            `✅ Amount: *${amount} Coins*\n\n💳 Choose payment method:`,
+            `✅ Amount: *${inrDisplay}*\n\n💳 Choose payment method:`,
             { parse_mode: 'Markdown', reply_markup: { inline_keyboard: methodRows } }
         );
     }
@@ -697,13 +704,23 @@ async function submitWithdrawal(chatId, userId) {
 function adminPanelKb() {
     return {
         inline_keyboard: [
-            [{ text: '⏳ Pending Withdrawals', callback_data: 'a|pending' }],
-            [{ text: '🗑️ Bin Requests',       callback_data: 'a|bin' }],
-            [{ text: '📢 Broadcast',           callback_data: 'a|broadcast' }],
-            [{ text: '👤 Message User',        callback_data: 'a|msguser' }],
-            [{ text: '🎟️ Create Coupon',       callback_data: 'a|coupon' }],
-            [{ text: '📊 Stats',               callback_data: 'a|stats' }],
-            [{ text: '❌ Close',               callback_data: 'a|close' }],
+            [
+                { text: '⏳ Pending', callback_data: 'a|pending' },
+                { text: '🗑️ Bin',    callback_data: 'a|bin' },
+            ],
+            [
+                { text: '📢 Broadcast',    callback_data: 'a|broadcast' },
+                { text: '👤 Msg User',     callback_data: 'a|msguser' },
+            ],
+            [
+                { text: '🎟️ Coupon',      callback_data: 'a|coupon' },
+                { text: '📊 Stats',       callback_data: 'a|stats' },
+            ],
+            [
+                { text: '🚫 Ban User',   callback_data: 'a|banuser' },
+                { text: '✅ Unban User', callback_data: 'a|unbanuser' },
+            ],
+            [{ text: '❌ Close',          callback_data: 'a|close' }],
         ]
     };
 }
@@ -828,19 +845,20 @@ async function doAccept(chatId, adminId, reqId, msgId) {
             coinRateCoins: rateCoins,
             coinRateInr: rateInr,
         });
+        const inrFmtApprove = `₹${fmtK(Number.isInteger(inrAmount) ? inrAmount : parseFloat(inrAmount.toFixed(2)))}`;
         await db.collection('user_notifications').add({
             userId: r.userId, type: 'approved',
             title: '✅ Withdrawal Approved!',
-            message: `Your ${r.amount} coins withdrawal has been approved.`,
+            message: `Your ${fmtK(r.amount)} coins (${inrFmtApprove}) withdrawal has been approved. Payment is on the way!`,
             createdAt: FieldValue.serverTimestamp()
         });
         if (r.telegramId) {
             bot.sendMessage(r.telegramId,
-                `✅ *Withdrawal Approved!*\n💳 ${r.method} | 🪙 *${r.amount} Coins*\n👤 ${r.accountName}`,
+                `✅ *Withdrawal Approved!*\n💳 ${r.method} | 🪙 *${fmtK(r.amount)} Coins* → *${inrFmtApprove}*\n👤 ${r.accountName || ''}`,
                 { parse_mode: 'Markdown' }
             ).catch(() => {});
         }
-        bot.sendMessage(chatId, `✅ Approved ${r.userName}'s ${r.amount} coins request.`);
+        bot.sendMessage(chatId, `✅ Approved ${r.userName}'s ${fmtK(r.amount)} coins (${inrFmtApprove}) request.`);
         if (!adminSkipped[adminId]) adminSkipped[adminId] = [];
         adminSkipped[adminId].push(reqId);
         setTimeout(() => showPending(chatId, adminId, null, false), 800);
@@ -873,16 +891,16 @@ async function doReject(chatId, adminId, reason) {
         await db.collection('user_notifications').add({
             userId: r.userId, type: 'rejected',
             title: '❌ Withdrawal Rejected',
-            message: `Your ${r.amount} coins withdrawal was rejected. Reason: ${reason}. Coins refunded.`,
+            message: `Your ${fmtK(r.amount)} coins withdrawal was rejected.\nReason: ${reason}\nCoins have been refunded to your balance.`,
             createdAt: FieldValue.serverTimestamp()
         });
         if (r.telegramId) {
             bot.sendMessage(r.telegramId,
-                `❌ *Withdrawal Rejected*\n🪙 *${r.amount} Coins* | Reason: ${reason}\nCoins refunded.`,
+                `❌ *Withdrawal Rejected*\n🪙 *${fmtK(r.amount)} Coins* refunded.\n📝 Reason: ${reason}`,
                 { parse_mode: 'Markdown' }
             ).catch(() => {});
         }
-        bot.sendMessage(chatId, `❌ Rejected ${r.userName}'s request. Coins refunded.`);
+        bot.sendMessage(chatId, `❌ Rejected ${r.userName}'s ${fmtK(r.amount)} coins request. Coins refunded.`);
         if (!adminSkipped[adminId]) adminSkipped[adminId] = [];
         adminSkipped[adminId].push(reqId);
         setTimeout(() => showPending(chatId, adminId, null, false), 800);
@@ -1124,6 +1142,48 @@ async function handleAdminFlow(msg) {
         );
         return;
     }
+
+    // Ban / Unban user by Telegram ID
+    if ((state.flow === 'banuser' || state.flow === 'unbanuser') && state.step === 'await_userid') {
+        const targetTgId = text.trim();
+        if (!/^\d+$/.test(targetTgId)) return bot.sendMessage(chatId, '❌ Please send a valid numeric Telegram User ID.');
+        delete adminState[adminId];
+        const wantBan = state.flow === 'banuser';
+        if (!db) return bot.sendMessage(chatId, '⚠️ Database not configured.', { reply_markup: adminPanelKb() });
+        try {
+            const snap = await db.collection('users').where('telegramId', '==', targetTgId).limit(1).get();
+            if (snap.empty) {
+                return bot.sendMessage(chatId, `❌ No user found with Telegram ID \`${targetTgId}\`.`, { parse_mode: 'Markdown', reply_markup: adminPanelKb() });
+            }
+            const userDoc = snap.docs[0];
+            const uData = userDoc.data();
+            await userDoc.ref.update({ isBlocked: wantBan });
+            bot.sendMessage(chatId,
+                `${wantBan ? '🚫 Banned' : '✅ Unbanned'}: *${uData.name || targetTgId}*`,
+                { parse_mode: 'Markdown', reply_markup: adminPanelKb() }
+            );
+            // Notify the user
+            try {
+                await bot.sendMessage(targetTgId,
+                    wantBan
+                        ? '⛔ Your account has been suspended by the admin.'
+                        : '✅ Your account has been reactivated by the admin.'
+                );
+            } catch {}
+        } catch (e) {
+            bot.sendMessage(chatId, '❌ Error: ' + e.message, { reply_markup: adminPanelKb() });
+        }
+        return;
+    }
+}
+
+async function startBanUser(chatId, adminId, msgId, wantBan) {
+    bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: msgId }).catch(() => {});
+    adminState[adminId] = { flow: wantBan ? 'banuser' : 'unbanuser', step: 'await_userid' };
+    bot.sendMessage(chatId,
+        `${wantBan ? '🚫 Ban User' : '✅ Unban User'}\n\nSend the *Telegram User ID* of the user you want to ${wantBan ? 'ban' : 'unban'}:`,
+        { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [[{ text: '❌ Cancel', callback_data: 'a|cancel' }]] } }
+    );
 }
 
 async function doBroadcast(chatId, adminId) {
@@ -1181,6 +1241,25 @@ async function doCreateCoupon(chatId, adminId) {
 // ─────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────
+
+// Format a number with k suffix: 1000→1k, 2520→2.52k, 500→500
+function fmtK(n) {
+    const abs = Math.abs(n);
+    if (abs >= 1000) {
+        const k = n / 1000;
+        const s = parseFloat(k.toFixed(2));
+        return `${s}k`;
+    }
+    return String(n);
+}
+
+// Format coins + INR equivalent: "🪙 5k = ₹50"
+function fmtCoinInr(coins, rateCoins, rateInr) {
+    const inr = (coins / rateCoins) * rateInr;
+    const inrFmt = fmtK(Number.isInteger(inr) ? inr : parseFloat(inr.toFixed(2)));
+    return `🪙 ${fmtK(coins)} = ₹${inrFmt}`;
+}
+
 function safeEdit(chatId, msgId, text, markup) {
     return bot.editMessageText(text, {
         chat_id: chatId, message_id: msgId, parse_mode: 'Markdown',

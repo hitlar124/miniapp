@@ -83,11 +83,11 @@
             <button onclick="setupStep1()" class="w-full btn-primary py-3 rounded-xl mt-5">Next →</button>
         </div>
 
-        <!-- Step 2: Firebase Config -->
+        <!-- Step 2: Firebase Config (optional — can be done from Settings after login) -->
         <div class="setup-step" id="step-2">
             <div class="flex items-center gap-3 mb-4">
                 <div class="step-circle bg-yellow-500/20 text-yellow-400">2</div>
-                <div><p class="font-bold">Firebase Configuration</p><p class="text-xs text-gray-400">Paste your Firebase project details</p></div>
+                <div><p class="font-bold">Firebase Configuration <span class="text-gray-500 font-normal text-xs">(Optional)</span></p><p class="text-xs text-gray-400">You can skip this and add it later from Settings</p></div>
             </div>
             <div class="info-box mb-4">
                 📌 <b>Where to get this:</b><br>
@@ -103,21 +103,22 @@
             </div>
             <div class="flex gap-3 mt-5">
                 <button onclick="showSetupStep(1)" class="flex-1 btn-ghost py-3 rounded-xl">← Back</button>
+                <button onclick="setupStep2Skip()" class="flex-1 btn-ghost py-3 rounded-xl text-yellow-400">Skip for now</button>
                 <button onclick="setupStep2()" class="flex-1 btn-primary py-3 rounded-xl">Next →</button>
             </div>
         </div>
 
-        <!-- Step 3: Admin Firebase Account -->
+        <!-- Step 3: Admin Firebase Account (optional) -->
         <div class="setup-step" id="step-3">
             <div class="flex items-center gap-3 mb-4">
                 <div class="step-circle bg-yellow-500/20 text-yellow-400">3</div>
-                <div><p class="font-bold">Firebase Admin Account</p><p class="text-xs text-gray-400">The email you registered with in the User App</p></div>
+                <div><p class="font-bold">Firebase Admin Account <span class="text-gray-500 font-normal text-xs">(Optional)</span></p><p class="text-xs text-gray-400">The email you registered with in the User App</p></div>
             </div>
             <div class="info-box mb-4">
                 📌 <b>How to do this:</b><br>
                 1. Open your <b>User App</b> → Register with the admin email<br>
                 2. <b>Firebase Console</b> → Authentication → Users → copy the <b>UID</b> for that email<br>
-                3. Enter the email, password and UID below
+                3. Enter the email, password and UID below (or skip and add later from Settings)
             </div>
             <div class="space-y-3">
                 <div><label class="field-label">Firebase Admin Email</label><input id="setup-adminEmail" type="email" placeholder="admin@example.com" class="inp"></div>
@@ -126,7 +127,8 @@
             </div>
             <div class="flex gap-3 mt-5">
                 <button onclick="showSetupStep(2)" class="flex-1 btn-ghost py-3 rounded-xl">← Back</button>
-                <button onclick="setupStep3()" class="flex-1 btn-primary py-3 rounded-xl">Finish Setup ✓</button>
+                <button onclick="setupStep3(true)" class="flex-1 btn-ghost py-3 rounded-xl text-yellow-400">Skip for now</button>
+                <button onclick="setupStep3(false)" class="flex-1 btn-primary py-3 rounded-xl">Finish Setup ✓</button>
             </div>
         </div>
     </div>
@@ -247,6 +249,38 @@
                     <input type="text" id="user-search" placeholder="Search name or email..." class="bg-transparent border-none text-white w-full focus:outline-none text-sm">
                 </div>
             </div>
+
+            <!-- Filter tabs: All / Active / Blocked -->
+            <div class="flex gap-1 bg-black/30 border border-white/10 rounded-xl p-1 mb-5 w-fit">
+                <button class="tab-btn active" id="uf-all" onclick="setUserFilter('all')">All</button>
+                <button class="tab-btn" id="uf-active" onclick="setUserFilter('active')">Active</button>
+                <button class="tab-btn" id="uf-blocked" onclick="setUserFilter('blocked')">Blocked</button>
+            </div>
+
+            <!-- User Actions by ID -->
+            <div class="grid grid-cols-2 gap-4 mb-5">
+                <div class="glass p-4">
+                    <h3 class="font-bold text-yellow-400 mb-3 text-sm">🪙 Adjust Coins by User ID</h3>
+                    <div class="space-y-2">
+                        <input id="ua-user-id" type="text" class="inp text-sm" placeholder="User ID (Firestore)">
+                        <input id="ua-delta" type="number" class="inp text-sm" placeholder="Amount (+100 or -100)">
+                        <button onclick="adminAdjustCoins()" class="btn-primary px-4 py-2 rounded-lg text-sm w-full">Apply</button>
+                    </div>
+                    <p id="ua-coins-result" class="text-xs text-green-400 mt-2 hidden"></p>
+                </div>
+                <div class="glass p-4">
+                    <h3 class="font-bold text-red-400 mb-3 text-sm">🚫 Ban / Unban by User ID</h3>
+                    <div class="space-y-2">
+                        <input id="ua-ban-id" type="text" class="inp text-sm" placeholder="User ID (Firestore)">
+                        <div class="flex gap-2">
+                            <button onclick="adminBanUser(true)" class="flex-1 btn-danger px-3 py-2 rounded-lg text-sm">Ban</button>
+                            <button onclick="adminBanUser(false)" class="flex-1 btn-success px-3 py-2 rounded-lg text-sm">Unban</button>
+                        </div>
+                    </div>
+                    <p id="ua-ban-result" class="text-xs text-green-400 mt-2 hidden"></p>
+                </div>
+            </div>
+
             <div class="glass overflow-hidden"><div class="overflow-x-auto">
                 <table><thead><tr><th>Name</th><th>Email</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody id="users-tbody"></tbody></table>
@@ -369,7 +403,8 @@
                         <h3 class="font-bold text-yellow-400 mb-4">Coin Rewards</h3>
                         <div class="grid grid-cols-2 gap-3">
                             <div><label class="field-label">Check-in Coins</label><input type="number" id="s-checkin-reward" class="inp" placeholder="50"></div>
-                            <div><label class="field-label">Referral Bonus</label><input type="number" id="s-referral-bonus" class="inp" placeholder="100"></div>
+                            <div><label class="field-label">Referral Bonus (Coins)</label><input type="number" id="s-referral-bonus" class="inp" placeholder="100"></div>
+                            <div><label class="field-label">Referral Commission %</label><input type="number" id="s-referral-commission" class="inp" placeholder="0" min="0" max="100" step="0.1"></div>
                             <div><label class="field-label">Ad Reward</label><input type="number" id="s-ad-reward" class="inp" placeholder="50"></div>
                             <div><label class="field-label">Math Quiz Reward</label><input type="number" id="s-math-reward" class="inp" placeholder="10"></div>
                         </div>
@@ -511,11 +546,8 @@
             return;
         }
 
-        // Has config — try init Firebase
-        if (!tryInitFirebase()) {
-            showSection('setup-section');
-            return;
-        }
+        // Try to init Firebase — but don't block on failure
+        tryInitFirebase();
 
         // Check if already "logged in" via session
         if (sessionStorage.getItem('rncch_logged_in') === '1') {
@@ -535,7 +567,7 @@
         document.getElementById('step-' + n).classList.add('active');
     };
 
-    window.setupStep1 = function() {
+    window.setupStep1 = async function() {
         const u = document.getElementById('setup-username').value.trim();
         const p = document.getElementById('setup-password').value;
         const p2 = document.getElementById('setup-password2').value;
@@ -546,7 +578,10 @@
         cfg.panelUsername = u;
         try { cfg.panelPassword = btoa(unescape(encodeURIComponent(p))); } catch(e) { cfg.panelPassword = btoa(p); }
         saveConfig(cfg);
-        showSetupStep(2);
+        // Save to server (enables /api/admin/broadcast auth)
+        try { await fetch('/api/admin/save-creds', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ u, p }) }); } catch {}
+        showAlert('✅ Setup complete! Please log in. You can add Firebase config from Settings later.');
+        setTimeout(() => { prefillSettings(); showSection('login-section'); }, 800);
     };
 
     window.setupStep2 = function() {
@@ -563,12 +598,21 @@
         showSetupStep(3);
     };
 
-    window.setupStep3 = function() {
+    window.setupStep2Skip = function() {
+        showSetupStep(3);
+    };
+
+    window.setupStep3 = function(skip = false) {
+        if (skip) {
+            showAlert('✅ Setup complete! You can add Firebase credentials from Settings later.');
+            setTimeout(() => { prefillSettings(); showSection('login-section'); }, 800);
+            return;
+        }
         const email = document.getElementById('setup-adminEmail').value.trim();
         const fbPass = document.getElementById('setup-adminFbPass').value;
         const uidStr = document.getElementById('setup-adminUid').value.trim();
-        if (!email || !fbPass) return showAlert('Please enter Firebase Admin email and password.');
-        if (!uidStr) return showAlert('Please enter Admin UID.');
+        if (!email || !fbPass) return showAlert('Please enter Firebase Admin email and password (or click Skip).');
+        if (!uidStr) return showAlert('Please enter Admin UID (or click Skip).');
         const cfg = getConfig() || {};
         cfg.adminEmail = email;
         try { cfg.adminFbPass = btoa(unescape(encodeURIComponent(fbPass))); } catch(e) { cfg.adminFbPass = btoa(fbPass); }
@@ -576,7 +620,7 @@
         saveConfig(cfg);
         showAlert('✅ Setup complete! Please log in now.');
         setTimeout(() => {
-            if (!tryInitFirebase()) return showAlert('Firebase config error. Please check your values.');
+            tryInitFirebase();
             prefillSettings();
             showSection('login-section');
         }, 800);
@@ -602,25 +646,21 @@
 
         if (u === cfg.panelUsername && passwordMatch) {
             errEl.classList.add('hidden');
-            if (!tryInitFirebase()) return showAlert('Firebase not initialized. Check Settings → Firebase Config.');
-            // Sign in to Firebase with admin credentials
+            // Try Firebase init — non-blocking, admin can still log in without Firebase
+            tryInitFirebase();
+            // Attempt Firebase sign-in with stored credentials (background, non-blocking)
             if (cfg.adminEmail && cfg.adminFbPass && auth) {
                 let fbPass = '';
                 try { fbPass = decodeURIComponent(escape(atob(cfg.adminFbPass))); } catch(e) { try { fbPass = atob(cfg.adminFbPass); } catch(e2) { fbPass = cfg.adminFbPass; } }
-                signInWithEmailAndPassword(auth, cfg.adminEmail, fbPass)
-                    .then(() => {
-                        sessionStorage.setItem('rncch_logged_in', '1');
-                        showSection('dashboard-section');
-                        loadDashboard();
-                    })
-                    .catch(err => {
-                        showAlert('Firebase login failed: ' + err.message + '\n\nCheck your email/password in Settings → Firebase Config.');
-                    });
-            } else {
-                sessionStorage.setItem('rncch_logged_in', '1');
-                showSection('dashboard-section');
-                loadDashboard();
+                signInWithEmailAndPassword(auth, cfg.adminEmail, fbPass).catch(() => {});
             }
+            // Also sync creds to server (needed for /api/admin/broadcast)
+            try { fetch('/api/admin/save-creds', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ u, p }) }); } catch {}
+            sessionStorage.setItem('rncch_logged_in', '1');
+            sessionStorage.setItem('rncch_login_u', u);
+            sessionStorage.setItem('rncch_login_p', p);
+            showSection('dashboard-section');
+            loadDashboard();
         } else {
             errEl.classList.remove('hidden');
         }
@@ -726,6 +766,24 @@
         loadCoupons();
     }
 
+    let userFilterMode = 'all';
+    window.setUserFilter = function(mode) {
+        userFilterMode = mode;
+        ['all','active','blocked'].forEach(m => document.getElementById('uf-'+m)?.classList.toggle('active', m===mode));
+        applyUserFilters();
+    };
+    function applyUserFilters() {
+        const t = (document.getElementById('user-search')?.value||'').toLowerCase();
+        document.querySelectorAll('#users-tbody tr').forEach(r => {
+            const name = r.querySelector('.u-name')?.textContent.toLowerCase()||'';
+            const email = r.querySelector('.u-email')?.textContent.toLowerCase()||'';
+            const blocked = r.dataset.blocked === '1';
+            const textMatch = name.includes(t)||email.includes(t);
+            const filterMatch = userFilterMode === 'all' || (userFilterMode === 'active' && !blocked) || (userFilterMode === 'blocked' && blocked);
+            r.style.display = (textMatch && filterMatch) ? '' : 'none';
+        });
+    }
+
     function loadUsers() {
         if (!db) return;
         onSnapshot(collection(db, 'users'), snap => {
@@ -734,7 +792,9 @@
             snap.forEach(d => {
                 const u = d.data();
                 const blocked = u.isBlocked || false;
-                tbody.innerHTML += `<tr>
+                const tr = document.createElement('tr');
+                tr.dataset.blocked = blocked ? '1' : '0';
+                tr.innerHTML = `
                     <td class="font-medium u-name">${u.name||'N/A'}</td>
                     <td class="text-gray-400 u-email text-sm">${u.email||''}</td>
                     <td class="font-bold text-yellow-400">${u.balance||0}</td>
@@ -742,19 +802,62 @@
                     <td class="flex items-center gap-2 flex-wrap">
                         <button class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-500/10 text-violet-400 border border-violet-500/20 cursor-pointer hover:bg-violet-500/20 transition" onclick="openEditBalance('${d.id}','${(u.name||'').replace(/'/g,"\\'")}',${u.balance||0})">Edit Coins</button>
                         <button class="px-3 py-1.5 rounded-lg text-xs font-semibold ${blocked?'btn-success':'btn-danger'}" onclick="toggleBlock('${d.id}',${blocked})">${blocked?'Unblock':'Block'}</button>
-                    </td>
-                </tr>`;
+                    </td>`;
+                tbody.appendChild(tr);
             });
+            applyUserFilters();
         });
-        document.getElementById('user-search').addEventListener('input', function() {
-            const t = this.value.toLowerCase();
-            document.querySelectorAll('#users-tbody tr').forEach(r => {
-                const name = r.querySelector('.u-name')?.textContent.toLowerCase()||'';
-                const email = r.querySelector('.u-email')?.textContent.toLowerCase()||'';
-                r.style.display = (name.includes(t)||email.includes(t)) ? '' : 'none';
-            });
-        });
+        document.getElementById('user-search').addEventListener('input', applyUserFilters);
     }
+
+    async function adminApiCall(endpoint, extra) {
+        const u = sessionStorage.getItem('rncch_login_u') || '';
+        const p = sessionStorage.getItem('rncch_login_p') || '';
+        const res = await fetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({u, p, ...extra}) });
+        return res.json();
+    }
+
+    window.adminAdjustCoins = async function() {
+        const userId = document.getElementById('ua-user-id').value.trim();
+        const delta = Number(document.getElementById('ua-delta').value);
+        const el = document.getElementById('ua-coins-result');
+        el.className = 'text-xs text-gray-400 mt-2';
+        el.classList.remove('hidden');
+        el.textContent = 'Processing...';
+        if (!userId || !delta) { el.textContent = '⚠️ Enter user ID and amount.'; return; }
+        try {
+            const json = await adminApiCall('/api/admin/adjust-coins', { userId, delta });
+            if (json.ok) {
+                el.className = 'text-xs text-green-400 mt-2';
+                el.textContent = `✅ Done! ${json.name} new balance: ${json.newBalance} coins`;
+                document.getElementById('ua-user-id').value = '';
+                document.getElementById('ua-delta').value = '';
+            } else {
+                el.className = 'text-xs text-red-400 mt-2';
+                el.textContent = '❌ ' + (json.error || 'Failed');
+            }
+        } catch(e) { el.className = 'text-xs text-red-400 mt-2'; el.textContent = '❌ ' + e.message; }
+    };
+
+    window.adminBanUser = async function(banned) {
+        const userId = document.getElementById('ua-ban-id').value.trim();
+        const el = document.getElementById('ua-ban-result');
+        el.className = 'text-xs text-gray-400 mt-2';
+        el.classList.remove('hidden');
+        el.textContent = 'Processing...';
+        if (!userId) { el.textContent = '⚠️ Enter user ID.'; return; }
+        try {
+            const json = await adminApiCall('/api/admin/ban-user', { userId, banned });
+            if (json.ok) {
+                el.className = 'text-xs text-green-400 mt-2';
+                el.textContent = `✅ ${json.name} has been ${banned ? 'banned' : 'unbanned'}.`;
+                document.getElementById('ua-ban-id').value = '';
+            } else {
+                el.className = 'text-xs text-red-400 mt-2';
+                el.textContent = '❌ ' + (json.error || 'Failed');
+            }
+        } catch(e) { el.className = 'text-xs text-red-400 mt-2'; el.textContent = '❌ ' + e.message; }
+    };
 
     function loadWithdrawals() {
         if (!db) return;
@@ -987,10 +1090,11 @@
                     coinRateCoins: rateCoins,
                     coinRateInr: rateInr,
                 });
+                const fmtInr = v => '₹' + (Number.isInteger(v) ? v : v.toFixed(2));
                 await addDoc(collection(db,'user_notifications'),{
                     userId, type:'approved',
                     title:'✅ Withdrawal Approved!',
-                    message:'Your withdrawal has been approved. Payment is on the way!',
+                    message:`Your withdrawal of 🪙 ${r.amount||0} coins (${fmtInr(inrAmount)}) has been approved. Payment is on the way!`,
                     createdAt:serverTimestamp()
                 });
                 showAlert('Approved! User notified.');
@@ -1012,7 +1116,7 @@
                 await addDoc(collection(db,'user_notifications'),{
                     userId:currentRejectUserId, type:'rejected',
                     title:'❌ Withdrawal Rejected',
-                    message:`Your withdrawal was rejected. Reason: ${reason}. Coins refunded.`,
+                    message:`Your withdrawal of 🪙 ${currentRejectAmount} coins was rejected.\nReason: ${reason}\nCoins have been refunded to your account.`,
                     createdAt:serverTimestamp()
                 });
                 showAlert('Rejected. Coins refunded to user.');
@@ -1024,14 +1128,24 @@
     window.sendBroadcast = async () => {
         const title = document.getElementById('bc-title').value.trim();
         const msg = document.getElementById('bc-msg').value.trim();
-        if (!title||!msg) return showAlert('Both title and message are required.');
-        if (!db) return showAlert('Firebase not connected.');
+        if (!title || !msg) return showAlert('Both title and message are required.');
+        const u = sessionStorage.getItem('rncch_login_u') || '';
+        const p = sessionStorage.getItem('rncch_login_p') || '';
         try {
-            await addDoc(collection(db,'notifications'),{title,message:msg,createdAt:serverTimestamp()});
-            showAlert('Notification sent to all users!');
-            document.getElementById('bc-title').value = '';
-            document.getElementById('bc-msg').value = '';
-        } catch(e) { showAlert(e.message); }
+            const res = await fetch('/api/admin/broadcast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ u, p, title, message: msg })
+            });
+            const json = await res.json();
+            if (json.ok) {
+                showAlert('✅ Notification sent to all users!');
+                document.getElementById('bc-title').value = '';
+                document.getElementById('bc-msg').value = '';
+            } else {
+                showAlert('❌ Failed: ' + (json.error || 'Unknown error'));
+            }
+        } catch (e) { showAlert('❌ Network error: ' + e.message); }
     };
 
     // ---- Settings ----
@@ -1060,6 +1174,7 @@
                 document.getElementById('s-math-cooldown').value = c.mathCooldown||60;
                 document.getElementById('s-checkin-reward').value = c.checkinReward||50;
                 document.getElementById('s-referral-bonus').value = c.referralBonus||100;
+                document.getElementById('s-referral-commission').value = c.referralCommission||0;
                 document.getElementById('s-ad-reward').value = c.adReward||50;
                 document.getElementById('s-math-reward').value = c.mathReward||10;
                 document.getElementById('s-min-withdrawal').value = c.minWithdrawal||5000;
@@ -1123,6 +1238,7 @@
             mathCooldown: +document.getElementById('s-math-cooldown').value||60,
             checkinReward: +document.getElementById('s-checkin-reward').value||50,
             referralBonus: +document.getElementById('s-referral-bonus').value||100,
+            referralCommission: +document.getElementById('s-referral-commission').value||0,
             adReward: +document.getElementById('s-ad-reward').value||50,
             mathReward: +document.getElementById('s-math-reward').value||10,
             minWithdrawal: +document.getElementById('s-min-withdrawal').value||5000,
