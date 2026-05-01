@@ -1036,6 +1036,14 @@
 
     function loadWithdrawals() {
         if (!db) return;
+        // Fetch the current exchange rate from Firestore before subscribing so
+        // coinsToInr() always shows the correct INR value, not hardcoded defaults.
+        getDoc(doc(db,'config','main')).then(cfgSnap => {
+            if (cfgSnap.exists()) {
+                const c = cfgSnap.data();
+                currentConfig = { coinValueCoins: c.coinValueCoins||1000, coinValueInr: c.coinValueInr||10 };
+            }
+        }).catch(()=>{}).finally(() => {
         try {
             // Note: NO orderBy here — composite (where + orderBy) requires a Firestore index
             // that isn't always created. We sort client-side instead so requests always show.
@@ -1079,11 +1087,19 @@
                     `<tr><td colspan="7" class="text-center text-red-400 py-10">Error loading: ${err.message}</td></tr>`;
             });
         } catch(e) { console.error(e); }
+        }); // end finally
     }
 
     // ── Bin Requests ──
     function loadBinRequests() {
         if (!db) return;
+        // Ensure currentConfig has the correct rate before rendering INR amounts.
+        getDoc(doc(db,'config','main')).then(cfgSnap => {
+            if (cfgSnap.exists()) {
+                const c = cfgSnap.data();
+                currentConfig = { coinValueCoins: c.coinValueCoins||1000, coinValueInr: c.coinValueInr||10 };
+            }
+        }).catch(()=>{}).finally(() => {
         try {
             onSnapshot(query(collection(db, 'withdrawals'), where('status','==','binned')), snap => {
                 const tbody = document.getElementById('bin-tbody');
@@ -1119,6 +1135,7 @@
                 });
             }, err => console.error('Bin listener error:', err));
         } catch(e) { console.error(e); }
+        }); // end finally
     }
 
     window.moveToBin = function(reqId) {
@@ -1203,11 +1220,16 @@
     };
 
     // ---- Actions ----
-    // Resolve a stored qrCodeUrl into something the browser can load.
-    // - Absolute http(s) URLs: use as-is
-    // - Relative URLs starting with /uploads/: prefix with current page origin
-    // - Legacy values like "undefined/uploads/..." or "/uploads/..." with a stray host: strip and re-prefix
-    function resolveQrUrl(raw) {
+    // Resolve a withdrawal record into a displayable QR image URL.
+    // Priority:
+    //   1. qrTelegramFileId → /api/qr-proxy (survives redeploys, fetched live from Telegram)
+    //   2. qrCodeUrl (absolute https) → use as-is
+    //   3. qrCodeUrl (relative /uploads/...) → prefix with origin (works only if file still exists)
+    function resolveQrUrl(r) {
+        if (r.qrTelegramFileId) {
+            return `/api/qr-proxy?fileId=${encodeURIComponent(r.qrTelegramFileId)}`;
+        }
+        const raw = r.qrCodeUrl;
         if (!raw) return '';
         const s = String(raw).trim();
         if (/^https?:\/\//i.test(s)) return s;
@@ -1216,7 +1238,7 @@
         return s;
     }
     function qrCellHtml(r) {
-        const url = resolveQrUrl(r.qrCodeUrl);
+        const url = resolveQrUrl(r);
         const upi = r.upiId || '';
         const upiBadge = upi ? `<span class="text-xs text-yellow-400 font-mono break-all block mt-1">📱 ${upi}</span>` : '';
         if (url) {

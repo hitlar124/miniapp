@@ -682,6 +682,9 @@ async function handleWithdrawFlow(msg) {
             // when needed via resolveQrUrl().
             state.data.qrCodeUrl = `/uploads/${fname}`;
             state.data.qrLocalPath = fpath;
+            // Also store the Telegram file_id so the admin panel can proxy the
+            // image via /api/qr-proxy even after a redeploy wipes local uploads.
+            state.data.qrTelegramFileId = fileId;
             state.step = 'ask_account_name';
             bot.sendMessage(chatId,
                 `✅ QR received!\n\n👤 Now send your *Account Holder Name*:`,
@@ -739,6 +742,7 @@ async function submitWithdrawal(chatId, userId) {
             accountName: state.data.accountName,
             upiId: state.data.upiId || null,
             qrCodeUrl: state.data.qrCodeUrl || null,
+            qrTelegramFileId: state.data.qrTelegramFileId || null,
             source: 'bot',
             status: 'pending',
             requestedAt: FieldValue.serverTimestamp()
@@ -895,7 +899,9 @@ async function renderPendingDoc(chatId, d, total) {
         `📥 ${srcLabel}\n` +
         `📅 ${date}`;
 
-    const qrSrc = resolveQrUrl(r.qrCodeUrl);
+    // Prefer the stored Telegram file_id (works after redeploys since no local file needed).
+    // Fall back to resolving the qrCodeUrl (only works while the local upload still exists).
+    const qrSrc = r.qrTelegramFileId || resolveQrUrl(r.qrCodeUrl);
     try {
         if (qrSrc) {
             await bot.sendPhoto(chatId, qrSrc, { caption, parse_mode: 'Markdown', reply_markup: pendingActionsKb(d.id) });
@@ -1051,7 +1057,7 @@ async function showBin(chatId, adminId, msgId, fromPanel) {
         `🆔 \`${d.id}\`\n👤 *${r.userName}*\n📧 ${r.userEmail}\n` +
         `💳 *${r.method}* | 🪙 *${inrDisplay}*\n👤 *${r.accountName}*\n${upiLine}📅 Binned: ${date}`;
 
-    const qrSrc = resolveQrUrl(r.qrCodeUrl);
+    const qrSrc = r.qrTelegramFileId || resolveQrUrl(r.qrCodeUrl);
     try {
         if (qrSrc) await bot.sendPhoto(chatId, qrSrc, { caption, parse_mode: 'Markdown', reply_markup: binActionsKb(d.id) });
         else await bot.sendMessage(chatId, caption, { parse_mode: 'Markdown', reply_markup: binActionsKb(d.id) });

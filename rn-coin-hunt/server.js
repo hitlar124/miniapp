@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -157,6 +158,33 @@ app.post('/api/admin/broadcast', async (req, res) => {
     } catch (e) {
         res.status(500).json({ ok: false, error: e.message });
     }
+});
+
+// ── QR Code proxy — serves Telegram-hosted QR images via file_id ──
+// This survives redeploys because images are fetched live from Telegram's
+// servers using the stored file_id rather than the local uploads directory.
+app.get('/api/qr-proxy', async (req, res) => {
+    const fileId = req.query.fileId;
+    const botToken = process.env.BOT_TOKEN;
+    if (!fileId) return res.status(400).send('Missing fileId');
+    if (!botToken) return res.status(503).send('Bot not configured');
+    try {
+        const getFileUrl = `https://api.telegram.org/bot${botToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
+        const fileInfo = await new Promise((resolve, reject) => {
+            https.get(getFileUrl, r => {
+                let data = '';
+                r.on('data', chunk => data += chunk);
+                r.on('end', () => { try { resolve(JSON.parse(data)); } catch (e) { reject(e); } });
+            }).on('error', reject);
+        });
+        if (!fileInfo.ok || !fileInfo.result?.file_path) return res.status(404).send('File not found');
+        const imgUrl = `https://api.telegram.org/file/bot${botToken}/${fileInfo.result.file_path}`;
+        https.get(imgUrl, imgRes => {
+            res.setHeader('Content-Type', imgRes.headers['content-type'] || 'image/jpeg');
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+            imgRes.pipe(res);
+        }).on('error', err => res.status(500).send('Proxy error'));
+    } catch (e) { res.status(500).send('Error: ' + e.message); }
 });
 
 // Config endpoint — reads from Render environment variables
