@@ -329,11 +329,11 @@
                         <div id="rule-signup-card" class="flex items-start gap-3 p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/15">
                             <span class="text-xl shrink-0">🎁</span>
                             <div>
-                                <p class="text-sm font-bold text-yellow-300">Sign-up Bonus</p>
+                                <p class="text-sm font-bold text-yellow-300">Referral Bonus</p>
                                 <p class="text-xs text-gray-400 leading-relaxed mt-0.5">
                                     Both you and your friend each get
                                     <span id="rule-signup-bonus" class="text-yellow-400 font-bold">...</span> coins
-                                    when they join using your code.
+                                    when they enter your referral code in the app.
                                 </p>
                             </div>
                         </div>
@@ -545,7 +545,6 @@
         let earnHistoryAll = [];
         let earnHistoryPage = 0;
         const EARN_HIST_PAGE_SIZE = 10;
-        let pendingReferralCode = null;   // start_param captured before signup
         let registrationInProgress = false; // true between createUser and setDoc finish
 
         // ---- AUTH ----
@@ -601,7 +600,7 @@
                 const cred = await createUserWithEmailAndPassword(auth, email, pw);
                 const refCode = Math.random().toString(36).substring(2, 8).toUpperCase();
                 await setDoc(doc(db, 'users', cred.user.uid), {
-                    uid: cred.user.uid, name, email, balance: 50,
+                    uid: cred.user.uid, name, email, balance: 0,
                     referralCode: refCode, referredBy: null,
                     dailyAdCount: 0, lastAdTime: 0, lastAdWatchDate: '',
                     dailyMathCount: 0, lastMathTime: 0, lastMathDate: '',
@@ -610,13 +609,6 @@
                     telegramId: null, deviceFingerprint: fp
                 });
                 registrationInProgress = false;
-
-                // Apply referral from link (pendingReferralCode set at page load from start_param)
-                if (pendingReferralCode) {
-                    const rc = pendingReferralCode;
-                    pendingReferralCode = null;
-                    await applyReferral(rc);
-                }
 
                 // Complete app initialization (handleAuth bailed out because doc wasn't ready)
                 await loadConfig();
@@ -653,13 +645,6 @@
 
         window.onload = () => {
             if (window.Telegram?.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
-            // Capture referral code immediately from Telegram start_param or URL query param
-            // Bot sends ?startapp=CODE → Telegram sets initDataUnsafe.start_param = CODE
-            // Also check URL params as fallback (?startapp=CODE or legacy ?start=CODE)
-            const _tgStartParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
-            const _urlParams = new URLSearchParams(window.location.search);
-            const _urlStartParam = _urlParams.get('startapp') || _urlParams.get('start') || null;
-            pendingReferralCode = _tgStartParam || _urlStartParam;
             setupNavigation();
             showView('auth-section');
             onAuthStateChanged(auth, handleAuth);
@@ -698,12 +683,6 @@
                                 telegramName: (tgUser.first_name || '') + (tgUser.last_name ? ' ' + tgUser.last_name : '')
                             });
                         }
-                    }
-                    // Auto referral — use captured pendingReferralCode or start_param (for re-logins)
-                    const startParam = pendingReferralCode || window.Telegram?.WebApp?.initDataUnsafe?.start_param;
-                    if (startParam && !userData.referredBy && startParam !== userData.referralCode) {
-                        pendingReferralCode = null;
-                        await applyReferral(startParam);
                     }
                     await checkNotifications();
                     updateUI();
@@ -804,7 +783,7 @@
                             userData.balance = (userData.balance || 0) + bonus;
                             userData.referredBy = code;
                             updateUI();
-                            showAlert(`You received ${bonus} coins as signup bonus!`);
+                            showAlert(`✅ Referral code applied! You received ${bonus} coins.`);
                         } else {
                             await updateDoc(doc(db, 'users', currentUser.uid), { referredBy: code });
                             userData.referredBy = code;
@@ -820,7 +799,7 @@
                 const freshSnap = await getDoc(doc(db, 'users', currentUser.uid));
                 if (freshSnap.exists()) userData = { ...userData, ...freshSnap.data() };
                 updateUI();
-                if (result.bonus > 0) showAlert(`You received ${result.bonus} coins as signup bonus!`);
+                if (result.bonus > 0) showAlert(`✅ Referral code applied! You received ${result.bonus} coins.`);
             } catch (e) { console.error('applyReferral error:', e); }
         }
 
