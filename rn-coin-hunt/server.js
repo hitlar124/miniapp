@@ -27,6 +27,17 @@ app.post('/api/admin/save-creds', (req, res) => {
     res.json({ ok: true });
 });
 
+// ── Resolve a user input (email or Firestore UID) to a Firestore doc ID ──
+async function resolveUserId(botDb, input) {
+    if (!input) return null;
+    if (input.includes('@')) {
+        const snap = await botDb.collection('users').where('email', '==', input.toLowerCase().trim()).limit(1).get();
+        if (snap.empty) return null;
+        return snap.docs[0].id;
+    }
+    return input.trim();
+}
+
 // ── Adjust a user's coin balance (firebase-admin, bypasses Firestore auth) ──
 app.post('/api/admin/adjust-coins', async (req, res) => {
     const { u, p, userId, delta, reason } = req.body || {};
@@ -37,16 +48,18 @@ app.post('/api/admin/adjust-coins', async (req, res) => {
         try { botDb = require('firebase-admin/firestore').getFirestore(); } catch {}
         if (!botDb) return res.status(503).json({ ok: false, error: 'Firebase not configured on server' });
         const { FieldValue } = require('firebase-admin/firestore');
-        const ref = botDb.collection('users').doc(userId);
+        const resolvedId = await resolveUserId(botDb, userId);
+        if (!resolvedId) return res.status(404).json({ ok: false, error: 'No user found with that email or ID' });
+        const ref = botDb.collection('users').doc(resolvedId);
         const snap = await ref.get();
         if (!snap.exists) return res.status(404).json({ ok: false, error: 'User not found' });
         await ref.update({ balance: FieldValue.increment(Number(delta)) });
         const newBalance = (snap.data().balance || 0) + Number(delta);
-        res.json({ ok: true, newBalance, name: snap.data().name || userId });
+        res.json({ ok: true, newBalance, name: snap.data().name || resolvedId });
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
-// ── Ban / unban a user by ID ──
+// ── Ban / unban a user by ID or email ──
 app.post('/api/admin/ban-user', async (req, res) => {
     const { u, p, userId, banned } = req.body || {};
     if (!verifyAdminCreds(u, p)) return res.status(403).json({ ok: false, error: 'Unauthorized' });
@@ -55,11 +68,13 @@ app.post('/api/admin/ban-user', async (req, res) => {
         let botDb = null;
         try { botDb = require('firebase-admin/firestore').getFirestore(); } catch {}
         if (!botDb) return res.status(503).json({ ok: false, error: 'Firebase not configured on server' });
-        const ref = botDb.collection('users').doc(userId);
+        const resolvedId = await resolveUserId(botDb, userId);
+        if (!resolvedId) return res.status(404).json({ ok: false, error: 'No user found with that email or ID' });
+        const ref = botDb.collection('users').doc(resolvedId);
         const snap = await ref.get();
         if (!snap.exists) return res.status(404).json({ ok: false, error: 'User not found' });
         await ref.update({ isBlocked: !!banned });
-        res.json({ ok: true, name: snap.data().name || userId });
+        res.json({ ok: true, name: snap.data().name || resolvedId });
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 

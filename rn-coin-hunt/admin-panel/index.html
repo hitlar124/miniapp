@@ -260,18 +260,18 @@
             <!-- User Actions by ID -->
             <div class="grid grid-cols-2 gap-4 mb-5">
                 <div class="glass p-4">
-                    <h3 class="font-bold text-yellow-400 mb-3 text-sm">🪙 Adjust Coins by User ID</h3>
+                    <h3 class="font-bold text-yellow-400 mb-3 text-sm">🪙 Adjust Coins by Email</h3>
                     <div class="space-y-2">
-                        <input id="ua-user-id" type="text" class="inp text-sm" placeholder="User ID (Firestore)">
+                        <input id="ua-user-id" type="email" class="inp text-sm" placeholder="User Email Address">
                         <input id="ua-delta" type="number" class="inp text-sm" placeholder="Amount (+100 or -100)">
                         <button onclick="adminAdjustCoins()" class="btn-primary px-4 py-2 rounded-lg text-sm w-full">Apply</button>
                     </div>
                     <p id="ua-coins-result" class="text-xs text-green-400 mt-2 hidden"></p>
                 </div>
                 <div class="glass p-4">
-                    <h3 class="font-bold text-red-400 mb-3 text-sm">🚫 Ban / Unban by User ID</h3>
+                    <h3 class="font-bold text-red-400 mb-3 text-sm">🚫 Ban / Unban by Email</h3>
                     <div class="space-y-2">
-                        <input id="ua-ban-id" type="text" class="inp text-sm" placeholder="User ID (Firestore)">
+                        <input id="ua-ban-id" type="email" class="inp text-sm" placeholder="User Email Address">
                         <div class="flex gap-2">
                             <button onclick="adminBanUser(true)" class="flex-1 btn-danger px-3 py-2 rounded-lg text-sm">Ban</button>
                             <button onclick="adminBanUser(false)" class="flex-1 btn-success px-3 py-2 rounded-lg text-sm">Unban</button>
@@ -824,7 +824,7 @@
         el.className = 'text-xs text-gray-400 mt-2';
         el.classList.remove('hidden');
         el.textContent = 'Processing...';
-        if (!userId || !delta) { el.textContent = '⚠️ Enter user ID and amount.'; return; }
+        if (!userId || !delta) { el.textContent = '⚠️ Enter email address and amount.'; return; }
         try {
             const json = await adminApiCall('/api/admin/adjust-coins', { userId, delta });
             if (json.ok) {
@@ -845,7 +845,7 @@
         el.className = 'text-xs text-gray-400 mt-2';
         el.classList.remove('hidden');
         el.textContent = 'Processing...';
-        if (!userId) { el.textContent = '⚠️ Enter user ID.'; return; }
+        if (!userId) { el.textContent = '⚠️ Enter email address.'; return; }
         try {
             const json = await adminApiCall('/api/admin/ban-user', { userId, banned });
             if (json.ok) {

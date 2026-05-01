@@ -406,9 +406,10 @@ async function uShowMyId(chatId, msgId, userId, from) {
         if (u) {
             extra =
                 `\n\n🔗 *Linked Account*\n` +
-                `Name: ${u.name || '—'}\n` +
-                `Email: ${u.email || '—'}\n` +
-                `Balance: ${u.balance || 0} Coins`;
+                `👤 Name: ${u.name || '—'}\n` +
+                `📧 Email: \`${u.email || '—'}\`\n` +
+                `🪙 Balance: ${u.balance || 0} Coins\n\n` +
+                `_Tap the email above to copy it_`;
         } else {
             extra = `\n\n⚠️ Account not linked yet. Open the app and sign in.`;
         }
